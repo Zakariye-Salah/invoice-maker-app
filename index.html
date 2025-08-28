@@ -9,47 +9,106 @@
     @media print { .no-print { display: none !important; } }
     .hidden-section { display: none; }
     .modal-bg { display: none; background: rgba(0,0,0,0.5); position: fixed; inset: 0; justify-content: center; align-items: center; z-index: 50; }
+
+
+    /* Table-ka mobile friendly */
+@media (max-width: 640px) {
+  table {
+    width: 100%;
+    font-size: 14px; /* yarayn font-ka si u fit gareeyo */
+  }
+
+  th, td {
+    display: block;       /* Block-ka si uu u noqdo vertical */
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+  }
+
+  thead {
+    display: none;        /* Hide header on small screens */
+  }
+
+  tr {
+    margin-bottom: 12px;
+    border-bottom: 1px solid #ddd;
+  }
+
+  td::before {
+    content: attr(data-label);
+    font-weight: bold;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .row {
+    flex-direction: column;
+  }
+
+  .right {
+    text-align: left;
+    margin-top: 8px;
+  }
+}
+@media (max-width: 640px) {
+  .row {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
   <div class="max-w-5xl mx-auto p-4 sm:p-6">
 
+ 
+
     <header class="mb-6 flex items-center justify-between">
       <h1 class="text-2xl font-bold">🧾 Invoice Maker</h1>
       <div class="flex gap-2 items-center">
-        <button id="loginSupermarketBtn" class="rounded-xl bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 no-print">
-          Login / Setup Supermarket
+        <!-- Suspended Message -->
+<p id="suspendedMsg" class="hidden bg-red-100 text-red-700 px-4 py-2 rounded mb-4 text-center"></p>
+
+   
+<button id="notesBtn" onclick="window.location.href='notes.html'" class="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 relative">
+  Notes
+  <span id="notesCounter" class="absolute -top-2 -right-3 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full hidden"></span>
+</button>
+        
+
+        <button id="logoutBtn" class="btn rounded-xl bg-red-600 px-4 py-2 text-white hover:bg-red-700">
+          Logout
         </button>
+    
+        <!-- Users button, hidden by default -->
+        <button id="usersBtn" class="btn rounded-xl bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 hidden">
+          Users
+        </button>
+    
         <span id="storeDisplay" class="font-semibold text-gray-700"></span>
       </div>
     </header>
+    
 
     <!-- MODAL FOR SUPERMARKET -->
-    <div id="supermarketModal" class="modal-bg flex hidden">
-      <div class="bg-white rounded-2xl p-6 w-96">
-        <h2 class="text-lg font-semibold mb-3">Supermarket Info</h2>
-        <div class="grid gap-3">
-          <input id="modalStoreName" class="border rounded-xl px-3 py-2" placeholder="Supermarket Name" />
-          <input id="modalStorePhone" class="border rounded-xl px-3 py-2" placeholder="Phone" />
-          <input id="modalStoreLocation" class="border rounded-xl px-3 py-2" placeholder="Location" />
-          <input id="modalStoreEmail" class="border rounded-xl px-3 py-2" placeholder="Email" />
-          <div class="flex justify-end gap-2 mt-3">
-            <button id="closeModalBtn" class="px-4 py-2 rounded-xl bg-gray-400 hover:bg-gray-500 text-white">Cancel</button>
-            <button id="saveModalBtn" class="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-700 text-white">Save</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
+ 
     <!-- CREATE INVOICE BUTTON -->
     <div class="mb-4">
-      <button id="showCreateInvoiceBtn" class="rounded-xl bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 no-print">
+      <button id="createInvoiceBtn" class="rounded-xl bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 no-print">
         Create Invoice
       </button>
+      <span id="currentTime" class="ml-2 text-sm text-gray-200" style="margin-left: 50%; color: red;"></span>
+
     </div>
+
+
+
 
     <!-- CREATE INVOICE FORM -->
     <section id="createInvoiceSection" class="bg-white rounded-2xl shadow p-4 sm:p-6 mb-6 hidden-section">
+      <input type="hidden" id="editingInvoiceId" />
+
       <h2 class="text-lg font-semibold mb-3">Create Invoice</h2>
     
       <!-- Customer Info -->
@@ -135,115 +194,254 @@
     </section>
   </div>
 
-  <script>
-    const LS_KEYS = { SETTINGS: 'invoice_settings_v1', INVOICES: 'invoices_v1' };
-    let settings = { storeName:'', storePhone:'', storeLocation:'', storeEmail:'' };
-    let invoices = [];
 
-    const $ = id => document.getElementById(id);
-    const fmt = n => Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-    const todayISO = () => new Date().toISOString().slice(0,10);
-    const genInvoiceNumber = () => {
-      const d = new Date(); const pad = x=>String(x).padStart(2,'0');
-      return `INV-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}-${Math.floor(Math.random()*1000)}`;
-    };
-
-    function load() {
-      const s = localStorage.getItem(LS_KEYS.SETTINGS);
-      if (s) settings = JSON.parse(s);
-      $('storeDisplay').textContent = settings.storeName ? `Store: ${settings.storeName}` : '';
-      invoices = JSON.parse(localStorage.getItem(LS_KEYS.INVOICES)||'[]');
-      $('invoiceDate').value = todayISO();
-      renderInvoices();
-    }
-
-    // MODAL LOGIC
-    const loginBtn = $('loginSupermarketBtn'), modal = $('supermarketModal'),
-          closeModalBtn = $('closeModalBtn'), saveModalBtn = $('saveModalBtn');
-    loginBtn.addEventListener('click', ()=>{
-      modal.classList.remove('hidden'); modal.classList.add('flex');
-      $('modalStoreName').value = settings.storeName || '';
-      $('modalStorePhone').value = settings.storePhone || '';
-      $('modalStoreLocation').value = settings.storeLocation || '';
-      $('modalStoreEmail').value = settings.storeEmail || '';
-    });
-    closeModalBtn.addEventListener('click', ()=>{ modal.classList.add('hidden'); modal.classList.remove('flex'); });
-    saveModalBtn.addEventListener('click', ()=>{
-      settings.storeName = $('modalStoreName').value.trim();
-      settings.storePhone = $('modalStorePhone').value.trim();
-      settings.storeLocation = $('modalStoreLocation').value.trim();
-      settings.storeEmail = $('modalStoreEmail').value.trim();
-      localStorage.setItem(LS_KEYS.SETTINGS, JSON.stringify(settings));
-      modal.classList.add('hidden'); modal.classList.remove('flex');
-      $('storeDisplay').textContent = settings.storeName ? `Store: ${settings.storeName}` : '';
-      alert(`Supermarket info saved: ${settings.storeName}`);
-    });
-
-    // SHOW/HIDE CREATE INVOICE
-    const createBtn = $('showCreateInvoiceBtn'), createSection = $('createInvoiceSection');
-    createBtn.addEventListener('click', ()=>{ createSection.classList.toggle('hidden-section'); });
-
-    // FORM VALIDATION
-    function validateInvoiceForm() {
-      const name = $('customerName').value.trim();
-      const phone = $('customerPhone').value.trim();
-      const amount = parseFloat($('amount').value)||0;
-      const paid = parseFloat($('paid').value)||0;
-      const formMsg = $('formMsg'); formMsg.classList.add('hidden'); formMsg.textContent='';
-      if(!name){formMsg.textContent='Customer name required'; formMsg.classList.remove('hidden'); return false;}
-      if(!phone){formMsg.textContent='Customer phone required'; formMsg.classList.remove('hidden'); return false;}
-      if(amount<=0){formMsg.textContent='Total amount > 0'; formMsg.classList.remove('hidden'); return false;}
-      if(paid<0){formMsg.textContent='Paid >= 0'; formMsg.classList.remove('hidden'); return false;}
-      if(paid>amount){formMsg.textContent='Paid <= Total'; formMsg.classList.remove('hidden'); return false;}
-      if(!settings.storeName || !settings.storePhone){formMsg.textContent='Save supermarket info first'; formMsg.classList.remove('hidden'); return false;}
-      return true;
-    }
-
-
-    const itemsContainer = $('invoiceItemsContainer');
-const addItemBtn = $('addItemBtn');
-
-// Function to add a new item row
-function addItemRow(desc = '', amt = 0) {
-  const div = document.createElement('div');
-  div.className = 'grid sm:grid-cols-3 gap-3 mb-2 item-row';
-  div.innerHTML = `
-    <input type="text" placeholder="Description" class="descInput mt-1 w-full rounded-xl border px-3 py-2" value="${desc}" />
-    <input type="number" placeholder="Amount" class="amountInput mt-1 w-full rounded-xl border px-3 py-2" value="${amt}" step="0.01" />
-    <button type="button" class="removeItemBtn bg-red-600 text-white px-3 py-1 rounded-xl">Remove</button>
-  `;
-  itemsContainer.appendChild(div);
-
-  div.querySelector('.removeItemBtn').addEventListener('click', () => {
-    div.remove();
-    updateTotal();
-  });
-
-  div.querySelector('.amountInput').addEventListener('input', updateTotal);
+<script>
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+if(!currentUser){
+  window.location.href = 'login.html'; // redirect to login if not logged in
 }
 
-// Calculate total amount
-function updateTotal() {
-  let total = 0;
-  document.querySelectorAll('.amountInput').forEach(inp => {
-    const val = parseFloat(inp.value) || 0;
-    total += val;
-  });
-  $('amount').value = total.toFixed(2);
+  const LS_CURRENT_USER = 'currentUser';
+  const LS_INVOICES = 'invoices_v1';
+  
+  window.LS_KEYS = { SETTINGS: 'invoice_settings_v1', INVOICES: 'invoices_v1' };
+
+  
+
+  let invoices = JSON.parse(localStorage.getItem(LS_INVOICES)) || [];
+  
+  if (!currentUser) {
+    alert('Please login first');
+    window.location.href = 'login.html';
+  }
+  
+  const $ = id => document.getElementById(id);
+  const fmt = n => Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const todayISO = () => new Date().toISOString().slice(0,10);
+  const genInvoiceNumber = () => {
+    const d = new Date(); const pad = x=>String(x).padStart(2,'0');
+    return `INV-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}-${Math.floor(Math.random()*1000)}`;
+  };
+  const usersBtn = $('usersBtn');
+
+if(currentUser && currentUser.username === 'admin' && currentUser.password === 'admin123') {
+  usersBtn.classList.remove('hidden');
+} else {
+  usersBtn.classList.add('hidden');
 }
 
-// Add initial empty row
-addItemRow();
+// Redirect to manage users page on click
+usersBtn.addEventListener('click', () => {
+  window.location.href = 'users.html';
+});
+ 
+  const createInvoiceBtn = document.getElementById("createInvoiceBtn");
+const createInvoiceSection = document.getElementById("createInvoiceSection");
 
-// Add new item row on button click
-addItemBtn.addEventListener('click', (e) => {
-  e.preventDefault();
-  addItemRow();
+// Show the create invoice form
+createInvoiceBtn.addEventListener("click", () => {
+createInvoiceSection.classList.toggle("hidden-section");
 });
 
 
-$('saveInvoiceBtn').addEventListener('click', ()=> {
+
+
+  // Load invoices
+  function load() {
+    $('storeDisplay').textContent = `Store: ${currentUser.supermarketName}`;
+    invoices = JSON.parse(localStorage.getItem(LS_INVOICES) || '[]');
+    $('invoiceDate').value = todayISO();
+    renderInvoices();
+  }
+  
+  // SAVE INVOICE for current supermarket
+  function saveInvoice(inv) {
+    inv.supermarketName = currentUser.supermarketName;
+    invoices.push(inv);
+    localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
+    renderInvoices();
+  }
+  
+  // VALIDATE INVOICE
+  function validateInvoiceForm() {
+    const name = $('customerName').value.trim();
+    const phone = $('customerPhone').value.trim();
+    const amount = parseFloat($('amount').value)||0;
+    const paid = parseFloat($('paid').value)||0;
+    const formMsg = $('formMsg'); formMsg.classList.add('hidden'); formMsg.textContent='';
+  
+    if(!name){formMsg.textContent='Customer name required'; formMsg.classList.remove('hidden'); return false;}
+    if(!phone){formMsg.textContent='Customer phone required'; formMsg.classList.remove('hidden'); return false;}
+    if(amount<=0){formMsg.textContent='Total amount > 0'; formMsg.classList.remove('hidden'); return false;}
+    if(paid<0){formMsg.textContent='Paid >= 0'; formMsg.classList.remove('hidden'); return false;}
+    if(paid>amount){formMsg.textContent='Paid <= Total'; formMsg.classList.remove('hidden'); return false;}
+    return true;
+  }
+  // Check if current user is suspended
+function isSuspended() {
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  return currentUser?.suspended;
+}
+
+
+
+
+  // RENDER INVOICES (filtered by current supermarket)
+  function renderInvoices() {
+  const tbody = $('invoiceRows'); 
+  tbody.innerHTML='';
+
+  const filter = $('filterStatus').value; 
+  const query = $('searchName').value.trim().toLowerCase();
+
+  const list = invoices.filter(inv => {
+    if(inv.supermarketName !== currentUser.supermarketName) return false;
+    const okStatus = filter==='all' || inv.status===filter;
+    const okSearch = !query || inv.name.toLowerCase().includes(query) || inv.invoiceNumber.toLowerCase().includes(query);
+    return okStatus && okSearch;
+  });
+
+  $('emptyState').classList.toggle('hidden', list.length!==0);
+
+  // Suspended logic
+  const suspendedMsg = $('suspendedMsg');
+  const isSuspended = currentUser?.suspended;
+
+  if(isSuspended){
+    suspendedMsg.textContent = "You are suspended. Please contact our WhatsApp: 0617125558";
+    suspendedMsg.classList.remove('hidden');
+  } else {
+    suspendedMsg.classList.add('hidden');
+  }
+
+  const disabled = isSuspended ? 'disabled class="opacity-50 cursor-not-allowed"' : '';
+
+  list.forEach(inv => {
+  const tr = document.createElement('tr');
+  tr.className = inv.status === 'unpaid' && inv.balance > 0 ? 'bg-red-50' : '';
+
+  // If user is suspended, disable buttons
+  const disabled = inv.suspended ? 'disabled class="opacity-50 cursor-not-allowed"' : '';
+
+  tr.innerHTML = `
+    <td class="p-2 font-medium">${inv.invoiceNumber}</td>
+    <td class="p-2">${inv.date}</td>
+    <td class="p-2">${inv.name}</td>
+    <td class="p-2">${inv.phone}</td>
+    <td class="p-2">$${fmt(inv.amount)}</td>
+    <td class="p-2">$${fmt(inv.paid)}</td>
+    <td class="p-2">$${fmt(inv.balance)}</td>
+    <td class="p-2">
+      <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${inv.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+        ${inv.status.toUpperCase()}
+      </span>
+    </td>
+    <td class="p-2 no-print">
+      <div class="flex flex-wrap gap-2">
+        <!-- WhatsApp -->
+        <button ${disabled} class="rounded-lg bg-green-600 hover:bg-green-700 text-white p-2" onclick="sendWhatsApp(${inv.id})" title="WhatsApp">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M20.52 3.48a11.958 11.958 0 0 0-16.97 0c-4.686 4.686-4.686 12.282 0 16.97l-1.23 4.5 4.617-1.214a11.958 11.958 0 0 0 16.97-16.97zm-8.52 16.52a9 9 0 1 1 0-18 9 9 0 0 1 0 18z"/>
+            <path d="M16.29 14.04c-.23-.12-1.36-.67-1.57-.74-.21-.07-.36-.12-.52.12-.17.23-.65.74-.8.89-.15.15-.31.17-.57.06-.23-.11-.97-.36-1.85-1.14-.68-.6-1.14-1.34-1.28-1.57-.13-.23-.01-.35.1-.46.1-.1.23-.26.35-.39.12-.13.16-.22.23-.37.07-.15.03-.28-.01-.39-.05-.11-.52-1.25-.71-1.71-.18-.45-.36-.39-.52-.39-.13 0-.28-.01-.43-.01-.15 0-.39.05-.59.28-.2.23-.77.75-.77 1.82 0 1.06.79 2.08.9 2.22.12.14 1.55 2.37 3.76 3.32.53.23.94.37 1.26.48.53.18 1.02.15 1.4.09.43-.07 1.36-.55 1.55-1.08.18-.53.18-.98.13-1.08-.05-.1-.21-.16-.44-.28z"/>
+          </svg>
+        </button>
+
+        <!-- SMS -->
+        <button ${disabled} class="rounded-lg bg-blue-600 hover:bg-blue-700 text-white p-2" onclick="sendSMS(${inv.id})" title="SMS">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M4 4h16v12H5.17L4 17.17V4z"/>
+          </svg>
+        </button>
+
+        <!-- Print -->
+        <button ${disabled} class="rounded-lg bg-gray-700 hover:bg-gray-800 text-white p-2" onclick='printInvoice(${JSON.stringify(inv)})' title="Print">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M6 9h12v7H6V9zm0-3h12V6H6v0zm4 11h4v2h-4v-2z"/>
+          </svg>
+        </button>
+
+        <!-- Mark Paid / Unpaid -->
+        ${inv.status === 'paid' 
+          ? `<button ${disabled} class="rounded-lg bg-amber-600 hover:bg-amber-700 text-white p-2" onclick='markUnpaid(${inv.id})' title="Mark Unpaid">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
+                 <path d="M9 16.2l-3.5-3.5 1.41-1.41L9 13.38l7.09-7.09 1.41 1.41z"/>
+               </svg>
+             </button>`
+          : `<button ${disabled} class="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white p-2" onclick='markPaid(${inv.id})' title="Mark Paid">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
+                 <path d="M9 16.2l-3.5-3.5 1.41-1.41L9 13.38l7.09-7.09 1.41 1.41z"/>
+               </svg>
+             </button>`
+        }
+
+        <!-- Edit -->
+        <button ${disabled} class="bg-yellow-500 text-white p-2 rounded" onclick="editInvoice(${inv.id})" title="Edit">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+          </svg>
+        </button>
+
+        <!-- Delete -->
+        <button ${disabled} class="rounded-lg bg-rose-600 hover:bg-rose-700 text-white p-2" onclick='deleteInvoice(${inv.id})' title="Delete">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-4.5l-1-1z"/>
+          </svg>
+        </button>
+      </div>
+    </td>
+  `;
+
+  tbody.appendChild(tr);
+});
+
+  const createBtn = $('createInvoiceBtn');
+  if(isSuspended){
+    createBtn.disabled = true;
+    createBtn.classList.add('opacity-50', 'cursor-not-allowed');
+  } else {
+    createBtn.disabled = false;
+    createBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+  }
+}
+
+  // ADD ITEM ROWS + TOTAL
+  const itemsContainer = $('invoiceItemsContainer');
+  const addItemBtn = $('addItemBtn');
+  
+  function addItemRow(desc = '', amt = 0) {
+    const div = document.createElement('div');
+    div.className = 'grid sm:grid-cols-3 gap-3 mb-2 item-row';
+    div.innerHTML = `
+      <input type="text" placeholder="Description" class="descInput mt-1 w-full rounded-xl border px-3 py-2" value="${desc}" />
+      <input type="number" placeholder="Amount" class="amountInput mt-1 w-full rounded-xl border px-3 py-2" value="${amt}" step="0.01" />
+      <button type="button" class="removeItemBtn bg-red-600 text-white px-3 py-1 rounded-xl">Remove</button>
+    `;
+    itemsContainer.appendChild(div);
+  
+    div.querySelector('.removeItemBtn').addEventListener('click', () => {
+      div.remove();
+      updateTotal();
+    });
+  
+    div.querySelector('.amountInput').addEventListener('input', updateTotal);
+  }
+  
+  function updateTotal() {
+    let total = 0;
+    document.querySelectorAll('.amountInput').forEach(inp => {
+      total += parseFloat(inp.value) || 0;
+    });
+    $('amount').value = total.toFixed(2);
+  }
+  
+  addItemRow();
+  addItemBtn.addEventListener('click', e => { e.preventDefault(); addItemRow(); });
+  
+  // SAVE NEW INVOICE
+  $('saveInvoiceBtn').addEventListener('click', ()=> {
   if(!validateInvoiceForm()) return;
+
+  const editingId = $('editingInvoiceId').value;
 
   // Collect items
   const items = [];
@@ -256,104 +454,90 @@ $('saveInvoiceBtn').addEventListener('click', ()=> {
   const totalAmount = items.reduce((sum, i) => sum + i.amount, 0);
   const paid = parseFloat($('paid').value) || 0;
 
-  const inv = {
-    id: Date.now(),
-    invoiceNumber: genInvoiceNumber(),
-    name: $('customerName').value.trim(),
-    phone: $('customerPhone').value.trim(),
-    date: $('invoiceDate').value,
-    items,
-    amount: totalAmount,
-    paid,
-    balance: Math.max(0, totalAmount - paid),
-    status: $('status').value
-  };
+  if(editingId){ 
+    // UPDATE EXISTING INVOICE
+    const inv = invoices.find(x => x.id == editingId);
+    if(!inv) return;
 
-  invoices.push(inv);
+    inv.name = $('customerName').value.trim();
+    inv.phone = $('customerPhone').value.trim();
+    inv.date = $('invoiceDate').value;
+    inv.items = items;
+    inv.amount = totalAmount;
+    inv.paid = paid;
+    inv.balance = Math.max(0, totalAmount - paid);
+    inv.status = $('status').value;
+
+    alert('Invoice updated');
+  } else {
+    // CREATE NEW INVOICE
+    const inv = {
+      id: Date.now(),
+      invoiceNumber: genInvoiceNumber(),
+      name: $('customerName').value.trim(),
+      phone: $('customerPhone').value.trim(),
+      date: $('invoiceDate').value,
+      items,
+      amount: totalAmount,
+      paid,
+      balance: Math.max(0, totalAmount - paid),
+      status: $('status').value,
+      supermarketName: currentUser.supermarketName
+    };
+    invoices.push(inv);
+    alert('Invoice created');
+  }
+
   localStorage.setItem(LS_KEYS.INVOICES, JSON.stringify(invoices));
   renderInvoices();
 
   // Reset form
-  createSection.classList.add('hidden-section');
+  $('createInvoiceSection').classList.add('hidden-section');
+  $('editingInvoiceId').value = '';
   itemsContainer.innerHTML = '';
   addItemRow();
-  $('customerName').value = '';
-  $('customerPhone').value = '';
-  $('invoiceDate').value = '';
-  $('amount').value = '';
-  $('paid').value = '';
-  $('status').value = 'unpaid';
-  alert('Invoice created');
+  clearForm();
 });
 
-function clearForm() {
-  $('customerName').value = '';
-  $('customerPhone').value = '';
-  $('amount').value = '';
-  $('paid').value = '';
-  $('status').value = 'unpaid';
-  $('invoiceDate').value = todayISO();
+  // === Edit Invoice ===
+  function editInvoice(id){
+  const inv = invoices.find(x => x.id === id);
+  if(!inv) return;
+
+  $('editingInvoiceId').value = inv.id;
+  $('customerName').value = inv.name;
+  $('customerPhone').value = inv.phone;
+  $('invoiceDate').value = inv.date;
+  $('amount').value = inv.amount;
+  $('paid').value = inv.paid;
+  $('status').value = inv.status;
+
+  // Remove existing item rows
+  itemsContainer.innerHTML = '';
+  if(inv.items && inv.items.length){
+    inv.items.forEach(item => addItemRow(item.description, item.amount));
+  } else {
+    addItemRow();
+  }
+
+  $('createInvoiceSection').classList.remove('hidden-section');
 }
 
-    // RENDER INVOICES
-    function renderInvoices(){
-      const tbody = $('invoiceRows'); tbody.innerHTML='';
-      const filter = $('filterStatus').value; const query = $('searchName').value.trim().toLowerCase();
-      const list = invoices.filter(inv=>{
-        const okStatus = filter==='all'||inv.status===filter;
-        const okSearch = !query || inv.name.toLowerCase().includes(query) || inv.invoiceNumber.toLowerCase().includes(query);
-        return okStatus && okSearch;
-      });
-      $('emptyState').classList.toggle('hidden', list.length!==0);
-      list.forEach(inv=>{
-        const tr = document.createElement('tr');
-        tr.className = inv.status==='unpaid'&&inv.balance>0?'bg-red-50':'';
-        tr.innerHTML=`
-          <td class="p-2 font-medium">${inv.invoiceNumber}</td>
-          <td class="p-2">${inv.date}</td>
-          <td class="p-2">${inv.name}</td>
-          <td class="p-2">${inv.phone}</td>
-          <td class="p-2">$${fmt(inv.amount)}</td>
-          <td class="p-2">$${fmt(inv.paid)}</td>
-          <td class="p-2">$${fmt(inv.balance)}</td>
-          <td class="p-2">
-            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${inv.status==='paid'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">
-              ${inv.status.toUpperCase()}
-            </span>
-          </td>
-       <td class="p-2 no-print">
-  <div class="flex flex-wrap gap-2">
-    <button class="rounded-lg bg-green-600 hover:bg-green-700 text-white px-3 py-1" onclick="sendWhatsApp(${inv.id})">WhatsApp</button>
-    <button class="rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-3 py-1" onclick="sendSMS(${inv.id})">SMS</button>
-    <button class="rounded-lg bg-gray-700 hover:bg-gray-800 text-white px-3 py-1" onclick='printInvoice(${JSON.stringify(inv)})'>Print</button>
-    ${inv.status === 'paid' 
-      ? `<button class="rounded-lg bg-amber-600 hover:bg-amber-700 text-white px-3 py-1" onclick='markUnpaid(${inv.id})'>Mark Unpaid</button>`
-      : `<button class="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1" onclick='markPaid(${inv.id})'>Mark Paid</button>`
-    }
-    <button class="rounded-lg bg-rose-600 hover:bg-rose-700 text-white px-3 py-1" onclick='deleteInvoice(${inv.id})'>Delete</button>
-  </div>
-</td>
 
-        `;
-        tbody.appendChild(tr);
-      });
-    }
 
-    // MARK PAID / UNPAID / DELETE
-    function markPaid(id) {
+  // MARK PAID / UNPAID / DELETE
+  function markPaid(id) {
   const i = invoices.findIndex(x => x.id === id);
   if (i === -1) return;
 
-  // Save original paid value if not already saved
-  if (invoices[i].originalPaid === undefined) {
-    invoices[i].originalPaid = invoices[i].paid;
-  }
+  // kaydi paidBefore si hadhow loo celiyo haddii unpaid la dhaho
+  invoices[i].paidBefore = invoices[i].paid || 0;
 
   invoices[i].paid = invoices[i].amount;
   invoices[i].balance = 0;
   invoices[i].status = 'paid';
 
-  localStorage.setItem(LS_KEYS.INVOICES, JSON.stringify(invoices));
+  localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
   renderInvoices();
 }
 
@@ -361,175 +545,202 @@ function markUnpaid(id) {
   const i = invoices.findIndex(x => x.id === id);
   if (i === -1) return;
 
-  // Restore paid amount from originalPaid if available
-  invoices[i].paid = invoices[i].originalPaid !== undefined ? invoices[i].originalPaid : invoices[i].paid;
-  invoices[i].balance = Math.max(0, invoices[i].amount - invoices[i].paid);
+  // haddii aan hore u kaydinay paidBefore soo celi
+  if (typeof invoices[i].paidBefore !== "undefined") {
+    invoices[i].paid = invoices[i].paidBefore;
+    invoices[i].balance = invoices[i].amount - invoices[i].paidBefore;
+  } else {
+    // haddii invoice cusub yahay oo aan la markPaid dhihin
+    invoices[i].paid = 0;
+    invoices[i].balance = invoices[i].amount;
+  }
+
   invoices[i].status = 'unpaid';
 
-  localStorage.setItem(LS_KEYS.INVOICES, JSON.stringify(invoices));
+  localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
   renderInvoices();
 }
 
-function deleteInvoice(id) {
-  if (!confirm('Delete this invoice?')) return;
-  invoices = invoices.filter(x => x.id !== id);
-  localStorage.setItem(LS_KEYS.INVOICES, JSON.stringify(invoices));
-  renderInvoices();
+  function deleteInvoice(id) {
+    if (!confirm('Delete this invoice?')) return;
+    invoices = invoices.filter(x => x.id !== id);
+    localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
+    renderInvoices();
+  }
+
+  function clearForm() {
+  $('customerName').value = '';
+  $('customerPhone').value = '';
+  $('invoiceDate').value = todayISO(); // sets today as default
+  $('amount').value = '';
+  $('paid').value = '';
+  $('status').value = 'unpaid';
+  $('invoiceItemsContainer').innerHTML = '';
+  addItemRow(); // add one empty row
 }
 
-    // PRINT
-    function printInvoice(inv) {
-  const w = window.open('', '_blank');
+  
+  // PRINT
+  function printInvoice(inv) {
+    const w = window.open('', '_blank');
+    let itemsHtml = '';
+    if (inv.items && inv.items.length) {
+      inv.items.forEach(item => {
+        itemsHtml += `<tr><td>${item.description}</td><td class="right">$${fmt(item.amount)}</td></tr>`;
+      });
+    } else {
+      itemsHtml = `<tr><td>Goods / Services</td><td class="right">$${fmt(inv.amount)}</td></tr>`;
+    }
+  
+    const html = `
+      <div>
+        <h2>${currentUser.supermarketName}</h2>
+        <div>${currentUser.supermarketPhone}</div>
+      </div>
+      <div style="text-align:right">
+        <div><strong>Invoice:</strong> ${inv.invoiceNumber}</div>
+        <div><strong>Date:</strong> ${inv.date}</div>
+      </div>
+      <hr>
+      <div><strong>Bill To:</strong> ${inv.name}<br>${inv.phone}</div>
+      <table>
+        <thead><tr><th>Description</th><th class="right">Amount</th></tr></thead>
+        <tbody>
+          ${itemsHtml}
+          <tr><td>Paid</td><td class="right">-$${fmt(inv.paid)}</td></tr>
+          <tr><td><strong>Balance</strong></td><td class="right"><strong>$${fmt(inv.balance)}</strong></td></tr>
+        </tbody>
+      </table>
+      <p>Status: ${inv.status.toUpperCase()}</p>
+    `;
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.onload = () => { setTimeout(() => { w.print(); w.close(); }, 300); };
+  }
+  
+  // PHONE & MESSAGING
+  function normalizePhone(phone) {
+    phone = phone.trim();
+    if (!phone.startsWith('+')) {
+      phone = '+252' + phone.replace(/^0+/, '');
+    }
+    return phone;
+  }
+  
+  function sendSMS(id) {
+    const inv = invoices.find(x => x.id === id);
+    if (!inv) return;
+    const phone = normalizePhone(inv.phone);
+    let message = '';
+    if (inv.status === 'paid') {
+  message = `Mahadsanid ${inv.name}, waxaad bixisay $${fmt(inv.paid)}.\nHadhaagagu waa: $${fmt(inv.balance)}.\nDukaanka ${currentUser.supermarketName} (${currentUser.supermarketPhone})`;
+} else {
+  message = `Xusuusin: ${inv.name}, lacagta lagugu leeyahay waa: $${fmt(inv.amount)}.\nFadlan iska bixi lacagta.\nDukaanka ${currentUser.supermarketName} numberka: (${currentUser.supermarketPhone})\nMahadsanid.`;
+}
 
-  // Build rows for each item
-  let itemsHtml = '';
-  if (inv.items && inv.items.length) {
-    inv.items.forEach(item => {
-      itemsHtml += `<tr><td>${item.description}</td><td class="right">$${fmt(item.amount)}</td></tr>`;
+    window.location.href = `sms:${phone}?body=${encodeURIComponent(message)}`;
+  }
+  
+  function sendWhatsApp(id) {
+    const inv = invoices.find(x => x.id === id);
+    if (!inv) return;
+    const phone = normalizePhone(inv.phone);
+    let message = '';
+    if (inv.status === 'paid') {
+  message = `Mahadsanid ${inv.name}, waxaad bixisay $${fmt(inv.paid)}.\nHadhaagagu waa: $${fmt(inv.balance)}.\nDukaanka ${currentUser.supermarketName} (${currentUser.supermarketPhone})`;
+} else {
+  message = `Xusuusin: ${inv.name}, lacagta lagugu leeyahay waa: $${fmt(inv.amount)}.\nFadlan iska bixi lacagta.\nDukaanka ${currentUser.supermarketName} numberka: (${currentUser.supermarketPhone})\nMahadsanid.`;
+}
+
+    window.open(`https://wa.me/${phone.replace('+','')}?text=${encodeURIComponent(message)}`, "_blank");
+  }
+  
+  const logoutBtn = $('logoutBtn');
+
+logoutBtn.addEventListener('click', () => {
+  if(confirm("Are you sure you want to logout?")) {
+    localStorage.removeItem('currentUser'); // remove logged-in user
+    window.location.href = 'login.html';    // redirect to login page
+  }
+});
+
+
+function openNotes() {
+  // mark notes as viewed before redirect
+  localStorage.setItem("lastViewedNotes", Date.now());
+  // redirect
+  window.location.href = 'notes.html';
+}
+
+function updateClock() {
+  const timeEl = document.getElementById("currentTime");
+  const now = new Date();
+
+  const options = { 
+    weekday: 'long', // full name of the day
+    year: 'numeric', 
+    month: 'numeric', 
+    day: 'numeric', 
+    hour: '2-digit', 
+    minute: '2-digit', 
+    second: '2-digit',
+    hour12: true
+  };
+
+  timeEl.textContent = now.toLocaleString('en-US', options); 
+}
+
+// Update clock immediately and every second
+updateClock();
+setInterval(updateClock, 1000);
+
+
+// Run after page loads
+document.addEventListener("DOMContentLoaded", () => {
+  const counterEl = document.getElementById("notesCounter");
+  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+  if(!currentUser) return;
+
+  const LS_MESSAGES = 'notesMessages';
+
+  function updateNotesCounter() {
+    const messages = JSON.parse(localStorage.getItem(LS_MESSAGES)) || [];
+    const lastViewed = parseInt(localStorage.getItem("lastViewedNotes") || 0);
+    let unreadCount = 0;
+
+    messages.forEach(msg => {
+      const visible = msg.recipients.includes(currentUser.username) || msg.recipients.includes("all");
+      if(!visible) return;
+      if(msg.sender !== currentUser.username && msg.timestamp > lastViewed) unreadCount++;
     });
-  } else {
-    // fallback if no items
-    itemsHtml = `<tr><td>Goods / Services</td><td class="right">$${fmt(inv.amount)}</td></tr>`;
+
+    if(unreadCount > 0){
+      counterEl.textContent = unreadCount;
+      counterEl.classList.remove("hidden");
+    } else {
+      counterEl.classList.add("hidden");
+    }
   }
 
-  const html = `
-    
-        <div class='row'>
-          <div>
-            <h2 style="margin:0">${settings.storeName}</h2>
-            <div class='muted'>${settings.storePhone}</div>
-          </div>
-          <div class='right'>
-            <div><strong>Invoice:</strong> ${inv.invoiceNumber}</div>
-            <div><strong>Date:</strong> ${inv.date}</div>
-          </div>
-        </div>
-        <hr style="margin:16px 0">
-        <div>
-          <div><strong>Bill To:</strong> ${inv.name}</div>
-          <div class='muted'>${inv.phone}</div>
-        </div>
-        <table>
-          <thead><tr><th>Description</th><th class='right'>Amount</th></tr></thead>
-          <tbody>
-            ${itemsHtml}
-            <tr><td>Paid</td><td class='right'>-$${fmt(inv.paid)}</td></tr>
-            <tr><td><strong>Balance</strong></td><td class='right'><strong>$${fmt(inv.balance)}</strong></td></tr>
-          </tbody>
-        </table>
-        <p class='muted'>Status: ${inv.status ? inv.status.toUpperCase() : 'UNPAID'}</p>
-   
-  `;
+  // Update on load
+  updateNotesCounter();
 
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-
-  // Print after content is loaded
-  w.onload = () => { setTimeout(() => { w.print(); w.close(); }, 300); };
-}
-
-    // PLACEHOLDER
-    function normalizePhone(phone) {
-  phone = phone.trim();
-  // If phone already starts with '+', use as-is
-  if (!phone.startsWith('+')) {
-    phone = '+252' + phone.replace(/^0+/, ''); // remove leading zeros and add +252
-  }
-  return phone;
-}
+  // Optional: auto-update every 5 seconds
+  setInterval(updateNotesCounter, 5000);
+});
 
 
-function sendSMS(id) { 
-  const inv = invoices.find(x => x.id === id);
-  if (!inv) return;
 
-  const settings = JSON.parse(localStorage.getItem(LS_KEYS.SETTINGS)) || {};
-  const shopName = settings.storeName || "My Supermarket";
-  const shopPhone = settings.storePhone || "000000000";
+// FILTER & SEARCH
+$('filterStatus').addEventListener('change', renderInvoices);
+$('searchName').addEventListener('input', renderInvoices);
 
-  const phone = normalizePhone(inv.phone);
+load();
 
-  let message = "";
-
-  if (inv.status === "paid") {
-     message = `Mahadsanid ${inv.name}, waxaad bixisay $${fmt(inv.paid)}.
-Hadhaagaaga: $${fmt(inv.balance)}.
-Supermarket: ${shopName} (${shopPhone})`;
-} else {
-  message = `Xusuusin: ${inv.name}, lacagta lagugu leeyahay waa $${fmt(inv.amount)}.
-Fadlan iska bixi lacagta supermarket-ka ${shopName} oo leh Number: ${shopPhone}.
-Mahadsanid.`;
-  }
-
-  window.location.href = `sms:${phone}?body=${encodeURIComponent(message)}`;
-}
-
-function sendWhatsApp(id) {
-  const inv = invoices.find(x => x.id === id);
-  if (!inv) return;
-
-  const settings = JSON.parse(localStorage.getItem(LS_KEYS.SETTINGS)) || {};
-  const shopName = settings.storeName || "My Supermarket";
-  const shopPhone = settings.storePhone || "000000000";
-
-  const phone = normalizePhone(inv.phone);
-
-  let message = "";
-
-  if (inv.status === "paid") {
-      message = `Mahadsanid ${inv.name}, waxaad bixisay $${fmt(inv.paid)}.
-Hadhaagaaga: $${fmt(inv.balance)}.
-Supermarket: ${shopName} (${shopPhone})`;
-} else {
-  message = `Xusuusin: ${inv.name}, lacagta lagugu leeyahay waa $${fmt(inv.amount)}.
-Fadlan iska bixi lacagta supermarket-ka ${shopName} oo leh Number: ${shopPhone}.
-Mahadsanid.`;
-}
-
-
-  window.open(`https://wa.me/${phone.replace('+','')}` + `?text=${encodeURIComponent(message)}`, "_blank");
-}
-
-
-    // FILTER & SEARCH
-    $('filterStatus').addEventListener('change', renderInvoices);
-    $('searchName').addEventListener('input', renderInvoices);
-
-    load();
-
-
-    function createMessage(inv) {
-  const name = inv.name;
-  const amount = Number(inv.amount || 0);
-  const paid = Number(inv.paid || 0);
-  const balance = Math.max(0, amount - paid);
-  if (inv.status === 'paid' && balance === 0) {
-    return `Thank you ${name}, you have paid $${fmt(paid)}.\nBalance: $${fmt(balance)}.\nFrom: ${settings.storeName} (${settings.storePhone})`;
-  } else {
-    // Reminder shows amount due (remaining)
-    const due = balance > 0 ? balance : amount;
-    return `Reminder: Dear ${name}, your invoice amount is $${fmt(due)}.\nPlease pay at ${settings.storeName} (${settings.storePhone}).\nThank you.`;
-  }
-}
-
-function openWhatsApp(phone, text) {
-  // wa.me requires MSISDN without +, e.g., 25261XXXXXXX
-  const clean = String(phone).replace(/[^0-9]/g, '');
-  const url = `https://wa.me/${clean}?text=${encodeURIComponent(text)}`;
-  window.open(url, '_blank');
-}
-
-function openSMS(phone, text) {
-  // sms: scheme – works on phones (may not on desktop)
-  // Some platforms use ?body=, others &body=
-  const clean = String(phone).replace(/[^0-9+]/g, '');
-  const url = `sms:${clean}?body=${encodeURIComponent(text)}`;
-  // Using location.href increases chance of opening native app
-  window.location.href = url;
-}
   </script>
 </body>
 </html>
+
 
 
