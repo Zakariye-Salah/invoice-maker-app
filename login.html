@@ -15,6 +15,15 @@
   .reminder{background:#FEF3C7; color:#92400E; padding:8px; border-radius:8px; margin-bottom:10px; text-align:center;}
 </style>
 <script>
+
+  if(!localStorage.getItem('users')) {
+  const defaultUsers = [
+    { username: 'admin', password: 'admin123', supermarketName: 'Admin' },
+    { username: 'user1', password: '123456', supermarketName: 'Market 1' }
+  ];
+  localStorage.setItem('users', JSON.stringify(defaultUsers));
+}
+
   const LS_USERS = 'users';
   const LS_CURRENT_USER = 'currentUser';
 
@@ -122,3 +131,4 @@
   </div>
 </body>
 </html>
+
