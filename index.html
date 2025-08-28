@@ -196,9 +196,18 @@
 
 
 <script>
+  
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
 if(!currentUser){
   window.location.href = 'login.html'; // redirect to login if not logged in
+}
+
+  if(!localStorage.getItem('users')) {
+  const defaultUsers = [
+    { username: 'admin', password: 'admin123', supermarketName: 'Admin' },
+    { username: 'user1', password: '123456', supermarketName: 'Market 1' }
+  ];
+  localStorage.setItem('users', JSON.stringify(defaultUsers));
 }
 
   const LS_CURRENT_USER = 'currentUser';
@@ -741,6 +750,7 @@ load();
   </script>
 </body>
 </html>
+
 
 
 
