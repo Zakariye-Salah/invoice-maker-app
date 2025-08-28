@@ -453,13 +453,14 @@ function sendSMS(id) {
   let message = "";
 
   if (inv.status === "paid") {
-    message = `Thank you ${inv.name}, you have paid $${fmt(inv.paid)}.
-Balance: $${fmt(inv.balance)}.
+    message = `Mahadsanid ${inv.name}, waxaa bixisay $${fmt(inv.paid)}.
+kugu hartay: $${fmt(inv.balance)}.
 From: ${shopName} (${shopPhone})`;
   } else {
-    message = `Reminder: Dear ${inv.name}, your invoice amount is $${fmt(inv.amount)}.
-Please pay at ${shopName} (${shopPhone}).
-Thank you.`;
+    message = `Xsuusin: Dear ${inv.name}, cadadka Lacagta Lagugu Leeyahay Waa $${fmt(inv.amount)}.
+Fadlan iska bixi lacagta ${shopName} (${shopPhone}).
+Mahadsanid.`;
+  
   }
 
   window.location.href = `sms:${phone}?body=${encodeURIComponent(message)}`;
@@ -478,13 +479,13 @@ function sendWhatsApp(id) {
   let message = "";
 
   if (inv.status === "paid") {
-    message = `Thank you ${inv.name}, you have paid $${fmt(inv.paid)}.
-Balance: $${fmt(inv.balance)}.
+    message = `Mahadsanid ${inv.name}, waxaa bixisay $${fmt(inv.paid)}.
+kugu hartay: $${fmt(inv.balance)}.
 From: ${shopName} (${shopPhone})`;
   } else {
-    message = `Reminder: Dear ${inv.name}, your invoice amount is $${fmt(inv.amount)}.
-Please pay at ${shopName} (${shopPhone}).
-Thank you.`;
+    message = `Xsuusin: Dear ${inv.name}, cadadka Lacagta Lagugu Leeyahay Waa $${fmt(inv.amount)}.
+Fadlan iska bixi lacagta ${shopName} (${shopPhone}).
+Mahadsanid.`;
   }
 
   window.open(`https://wa.me/${phone.replace('+','')}` + `?text=${encodeURIComponent(message)}`, "_blank");
@@ -530,3 +531,4 @@ function openSMS(phone, text) {
   </script>
 </body>
 </html>
+
