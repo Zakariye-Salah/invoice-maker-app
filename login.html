@@ -15,86 +15,85 @@
   .reminder{background:#FEF3C7; color:#92400E; padding:8px; border-radius:8px; margin-bottom:10px; text-align:center;}
 </style>
 <script>
+const LS_USERS = 'users';
+const LS_CURRENT_USER = 'currentUser';
 
-  if(!localStorage.getItem('users')) {
+// Preload default users if none exist
+if(!localStorage.getItem(LS_USERS)) {
   const defaultUsers = [
-    { username: 'admin', password: 'admin123', supermarketName: 'Admin' },
-    { username: 'user1', password: '123456', supermarketName: 'Market 1' }
+    { username: 'admin', password: 'admin123', supermarketName: 'Admin', role: 'admin' },
+    { username: 'user1', password: '123456', supermarketName: 'Market 1', role: 'market' }
   ];
-  localStorage.setItem('users', JSON.stringify(defaultUsers));
+  localStorage.setItem(LS_USERS, JSON.stringify(defaultUsers));
 }
 
-  const LS_USERS = 'users';
-  const LS_CURRENT_USER = 'currentUser';
+// Show register form
+function showRegister(){
+  document.getElementById('loginForm').classList.add('hidden');
+  document.getElementById('registerForm').classList.remove('hidden');
+  document.getElementById('reminder').textContent = 'Please fill the registration form to create your supermarket account';
+}
 
-  // Show register form
-  function showRegister(){
-    document.getElementById('loginForm').classList.add('hidden');
-    document.getElementById('registerForm').classList.remove('hidden');
-    document.getElementById('reminder').textContent = 'Please fill the registration form to create your supermarket account';
+// Show login form
+function showLogin(){
+  document.getElementById('registerForm').classList.add('hidden');
+  document.getElementById('loginForm').classList.remove('hidden');
+  document.getElementById('reminder').textContent = 'Please login to access the Invoice App';
+}
+
+// Register user
+function registerUser(){
+  const name = document.getElementById('regSupermarketName').value.trim();
+  const phone = document.getElementById('regSupermarketPhone').value.trim();
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const location = document.getElementById('regLocation').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+
+  if(!name || !phone || !username || !password){ alert('Please fill required fields'); return; }
+
+  let users = JSON.parse(localStorage.getItem(LS_USERS)) || [];
+  if(users.find(u => u.username === username)){ alert('Username already exists'); return; }
+
+  users.push({id: Date.now(), supermarketName:name, supermarketPhone:phone, username, password, location, email, role:'market'});
+  localStorage.setItem(LS_USERS, JSON.stringify(users));
+  alert('Registered successfully! Please login.');
+  showLogin();
+}
+
+// Login user
+function loginUser(){
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const remember = document.getElementById('rememberMe').checked;
+
+  let users = JSON.parse(localStorage.getItem(LS_USERS)) || [];
+  const user = users.find(u => u.username === username && u.password === password);
+
+  if(!user){ alert('Wrong credentials'); return; }
+
+  localStorage.setItem(LS_CURRENT_USER, JSON.stringify(user));
+
+  // Save or remove credentials based on "Remind Me"
+  if(remember){
+    localStorage.setItem('rememberedCredentials', JSON.stringify({username,password}));
+  } else {
+    localStorage.removeItem('rememberedCredentials');
   }
 
-  // Show login form
-  function showLogin(){
-    document.getElementById('registerForm').classList.add('hidden');
-    document.getElementById('loginForm').classList.remove('hidden');
-    document.getElementById('reminder').textContent = 'Please login to access the Invoice App';
+  window.location.href = 'index.html';
+}
+
+// Auto-fill remembered credentials
+window.onload = () => {
+  const remembered = JSON.parse(localStorage.getItem('rememberedCredentials'));
+  if(remembered){
+    document.getElementById('loginUsername').value = remembered.username;
+    document.getElementById('loginPassword').value = remembered.password;
+    document.getElementById('rememberMe').checked = true;
   }
-
-  // Register user
-  function registerUser(){
-    const name = document.getElementById('regSupermarketName').value.trim();
-    const phone = document.getElementById('regSupermarketPhone').value.trim();
-    const username = document.getElementById('regUsername').value.trim();
-    const password = document.getElementById('regPassword').value;
-    const location = document.getElementById('regLocation').value.trim();
-    const email = document.getElementById('regEmail').value.trim();
-
-    if(!name || !phone || !username || !password){ alert('Please fill required fields'); return; }
-
-    let users = JSON.parse(localStorage.getItem(LS_USERS)) || [];
-    if(users.find(u => u.username === username)){ alert('Username already exists'); return; }
-
-    users.push({id: Date.now(), supermarketName:name, supermarketPhone:phone, username, password, location, email});
-    localStorage.setItem(LS_USERS, JSON.stringify(users));
-    alert('Registered successfully! Please login.');
-    showLogin();
-  }
-
-  // Login user
-  function loginUser(){
-    const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value;
-    const remember = document.getElementById('rememberMe').checked;
-
-    let users = JSON.parse(localStorage.getItem(LS_USERS)) || [];
-    const user = users.find(u => u.username === username && u.password === password);
-
-    if(!user){ alert('Wrong credentials'); return; }
-
-    localStorage.setItem(LS_CURRENT_USER, JSON.stringify(user));
-
-    // Save or remove credentials based on "Remind Me"
-    if(remember){
-      localStorage.setItem('rememberedCredentials', JSON.stringify({username,password}));
-    } else {
-      localStorage.removeItem('rememberedCredentials');
-    }
-
-    alert('Login successful!');
-    window.location.href = 'index.html';
-  }
-
-  // Auto-fill remembered credentials
-  window.onload = () => {
-    const remembered = JSON.parse(localStorage.getItem('rememberedCredentials'));
-    if(remembered){
-      document.getElementById('loginUsername').value = remembered.username;
-      document.getElementById('loginPassword').value = remembered.password;
-      document.getElementById('rememberMe').checked = true;
-    }
-    document.getElementById('reminder').textContent = 'Please login to access the Invoice App';
-  };
+  document.getElementById('reminder').textContent = 'Please login to access the Invoice App';
+};
 </script>
 </head>
 <body>
@@ -107,7 +106,6 @@
       <input type="text" id="loginUsername" placeholder="Username" />
       <input type="password" id="loginPassword" placeholder="Password" />
 
-      <!-- Remind Me Checkbox -->
       <label style="display:flex; align-items:center; margin-top:6px;">
         <input type="checkbox" id="rememberMe" style="margin-right:6px;" /> Remind me
       </label>
@@ -131,4 +129,3 @@
   </div>
 </body>
 </html>
-
