@@ -453,14 +453,13 @@ function sendSMS(id) {
   let message = "";
 
   if (inv.status === "paid") {
-    message = `Mahadsanid ${inv.name}, waxaa bixisay $${fmt(inv.paid)}.
-kugu hartay: $${fmt(inv.balance)}.
-From: ${shopName} (${shopPhone})`;
-  } else {
-    message = `Xsuusin: Dear ${inv.name}, cadadka Lacagta Lagugu Leeyahay Waa $${fmt(inv.amount)}.
-Fadlan iska bixi lacagta ${shopName} (${shopPhone}).
+     message = `Mahadsanid ${inv.name}, waxaad bixisay $${fmt(inv.paid)}.
+Hadhaagaaga: $${fmt(inv.balance)}.
+Supermarket: ${shopName} (${shopPhone})`;
+} else {
+  message = `Xusuusin: ${inv.name}, lacagta lagugu leeyahay waa $${fmt(inv.amount)}.
+Fadlan iska bixi lacagta supermarket-ka ${shopName} oo leh Number: ${shopPhone}.
 Mahadsanid.`;
-  
   }
 
   window.location.href = `sms:${phone}?body=${encodeURIComponent(message)}`;
@@ -479,14 +478,15 @@ function sendWhatsApp(id) {
   let message = "";
 
   if (inv.status === "paid") {
-    message = `Mahadsanid ${inv.name}, waxaa bixisay $${fmt(inv.paid)}.
-kugu hartay: $${fmt(inv.balance)}.
-From: ${shopName} (${shopPhone})`;
-  } else {
-    message = `Xsuusin: Dear ${inv.name}, cadadka Lacagta Lagugu Leeyahay Waa $${fmt(inv.amount)}.
-Fadlan iska bixi lacagta ${shopName} (${shopPhone}).
+      message = `Mahadsanid ${inv.name}, waxaad bixisay $${fmt(inv.paid)}.
+Hadhaagaaga: $${fmt(inv.balance)}.
+Supermarket: ${shopName} (${shopPhone})`;
+} else {
+  message = `Xusuusin: ${inv.name}, lacagta lagugu leeyahay waa $${fmt(inv.amount)}.
+Fadlan iska bixi lacagta supermarket-ka ${shopName} oo leh Number: ${shopPhone}.
 Mahadsanid.`;
-  }
+}
+
 
   window.open(`https://wa.me/${phone.replace('+','')}` + `?text=${encodeURIComponent(message)}`, "_blank");
 }
@@ -531,4 +531,5 @@ function openSMS(phone, text) {
   </script>
 </body>
 </html>
+
 
