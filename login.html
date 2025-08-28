@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - Invoice App</title>
+<style>
+  body{font-family: Arial; display:flex; justify-content:center; align-items:center; height:100vh; background:#f3f3f3; margin:0;}
+  .container{background:white; padding:24px; border-radius:12px; box-shadow:0 0 10px rgba(0,0,0,0.1); width:320px;}
+  input{width:100%; padding:8px; margin:6px 0; border-radius:8px; border:1px solid #ccc;}
+  button{width:100%; padding:10px; border:none; border-radius:8px; background:#34D399; color:white; font-weight:bold; cursor:pointer; margin-top:8px;}
+  button:hover{background:#059669;}
+  .link{color:#059669; cursor:pointer; text-align:center; display:block; margin-top:10px;}
+  .hidden{display:none;}
+  .reminder{background:#FEF3C7; color:#92400E; padding:8px; border-radius:8px; margin-bottom:10px; text-align:center;}
+</style>
+<script>
+  const LS_USERS = 'users';
+  const LS_CURRENT_USER = 'currentUser';
+
+  // Show register form
+  function showRegister(){
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('registerForm').classList.remove('hidden');
+    document.getElementById('reminder').textContent = 'Please fill the registration form to create your supermarket account';
+  }
+
+  // Show login form
+  function showLogin(){
+    document.getElementById('registerForm').classList.add('hidden');
+    document.getElementById('loginForm').classList.remove('hidden');
+    document.getElementById('reminder').textContent = 'Please login to access the Invoice App';
+  }
+
+  // Register user
+  function registerUser(){
+    const name = document.getElementById('regSupermarketName').value.trim();
+    const phone = document.getElementById('regSupermarketPhone').value.trim();
+    const username = document.getElementById('regUsername').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const location = document.getElementById('regLocation').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+
+    if(!name || !phone || !username || !password){ alert('Please fill required fields'); return; }
+
+    let users = JSON.parse(localStorage.getItem(LS_USERS)) || [];
+    if(users.find(u => u.username === username)){ alert('Username already exists'); return; }
+
+    users.push({id: Date.now(), supermarketName:name, supermarketPhone:phone, username, password, location, email});
+    localStorage.setItem(LS_USERS, JSON.stringify(users));
+    alert('Registered successfully! Please login.');
+    showLogin();
+  }
+
+  // Login user
+  function loginUser(){
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const remember = document.getElementById('rememberMe').checked;
+
+    let users = JSON.parse(localStorage.getItem(LS_USERS)) || [];
+    const user = users.find(u => u.username === username && u.password === password);
+
+    if(!user){ alert('Wrong credentials'); return; }
+
+    localStorage.setItem(LS_CURRENT_USER, JSON.stringify(user));
+
+    // Save or remove credentials based on "Remind Me"
+    if(remember){
+      localStorage.setItem('rememberedCredentials', JSON.stringify({username,password}));
+    } else {
+      localStorage.removeItem('rememberedCredentials');
+    }
+
+    alert('Login successful!');
+    window.location.href = 'index.html';
+  }
+
+  // Auto-fill remembered credentials
+  window.onload = () => {
+    const remembered = JSON.parse(localStorage.getItem('rememberedCredentials'));
+    if(remembered){
+      document.getElementById('loginUsername').value = remembered.username;
+      document.getElementById('loginPassword').value = remembered.password;
+      document.getElementById('rememberMe').checked = true;
+    }
+    document.getElementById('reminder').textContent = 'Please login to access the Invoice App';
+  };
+</script>
+</head>
+<body>
+  <div class="container">
+    <div id="reminder" class="reminder"></div>
+
+    <!-- LOGIN FORM PART -->
+    <div id="loginForm">
+      <h2>Login</h2>
+      <input type="text" id="loginUsername" placeholder="Username" />
+      <input type="password" id="loginPassword" placeholder="Password" />
+
+      <!-- Remind Me Checkbox -->
+      <label style="display:flex; align-items:center; margin-top:6px;">
+        <input type="checkbox" id="rememberMe" style="margin-right:6px;" /> Remind me
+      </label>
+
+      <button onclick="loginUser()">Login</button>
+      <span class="link" onclick="showRegister()">Register supermarket</span>
+    </div>
+
+    <!-- REGISTER FORM -->
+    <div id="registerForm" class="hidden">
+      <h2>Register Supermarket</h2>
+      <input type="text" id="regSupermarketName" placeholder="Supermarket Name" />
+      <input type="text" id="regSupermarketPhone" placeholder="Supermarket Phone" />
+      <input type="text" id="regUsername" placeholder="Username" />
+      <input type="password" id="regPassword" placeholder="Password" />
+      <input type="text" id="regLocation" placeholder="Location" />
+      <input type="email" id="regEmail" placeholder="Email" />
+      <button onclick="registerUser()">Register</button>
+      <span class="link" onclick="showLogin()">Back to Login</span>
+    </div>
+  </div>
+</body>
+</html>

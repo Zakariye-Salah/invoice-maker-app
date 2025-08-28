@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Users</title>
+<style>
+  /* General page styles */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f3f4f6;
+  margin: 0;
+  padding: 0;
+}
+
+/* Header */
+header h1 {
+  font-size: 1.8rem;
+  color: #111827;
+}
+
+header button {
+  transition: background 0.2s;
+}
+
+/* Input fields */
+input, select {
+  border: 1px solid #d1d5db;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  width: 100%;
+  transition: border 0.2s;
+}
+
+input:focus, select:focus {
+  border-color: #10b981;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+}
+
+/* Buttons */
+button {
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+/* Form section */
+section {
+  background-color: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  padding: 1.25rem 1.5rem;
+}
+
+/* Users table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+th, td {
+  padding: 0.75rem;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+th {
+  background-color: #f9fafb;
+  color: #374151;
+}
+
+tbody tr:nth-child(even) {
+  background-color: #f9fafb;
+}
+
+tbody tr.bg-red-50 {
+  background-color: #fee2e2;
+}
+
+/* Action buttons */
+td button {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.bg-yellow-500 { background-color: #f59e0b; }
+.bg-rose-600 { background-color: #e11d48; }
+.bg-gray-600 { background-color: #4b5563; }
+.bg-emerald-600 { background-color: #10b981; }
+.bg-emerald-700:hover { background-color: #059669; }
+
+.text-white { color: #ffffff; }
+
+.flex { display: flex; }
+.gap-2 { gap: 0.5rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+
+/* Empty state */
+#emptyUsers {
+  text-align: center;
+  color: #6b7280;
+  padding: 1.5rem 0;
+}
+
+/* Responsive grid for form */
+.grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .sm\:grid-cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Hide error messages by default */
+.hidden {
+  display: none;
+}
+
+/* Rounded corners & shadow utility */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-2xl { border-radius: 1rem; }
+.shadow { box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+/* Scrollable table on small screens */
+.overflow-x-auto {
+  overflow-x: auto;
+}
+
+</style>
+</head>
+<body class="bg-gray-100 p-6">
+
+  <header class="mb-6 flex items-center justify-between">
+    <h1 class="text-2xl font-bold">👥 Manage Users</h1>
+    <button onclick="window.location.href='index.html'" class="btn c px-4 py-2" style="margin-left: 20px; color: rgb(245, 16, 9); margin-top: 10px; font-weight: 500; font-size: 20px; background: none;" >Back to the main page</button>
+  </header>
+
+<!-- Show Add User Button -->
+<div class="mb-4">
+  <button id="showAddUserBtn" class="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700">
+    Add New User
+  </button>
+</div>
+
+<!-- Add New User Form (hidden by default) -->
+<section id="addUserSection" class="bg-white rounded-2xl shadow p-4 mb-6 hidden">
+  <h2 class="text-lg font-semibold mb-3">Add New User</h2>
+  <div class="grid sm:grid-cols-4 gap-3 mb-3">
+    <input type="text" id="newSupermarket" placeholder="Supermarket Name" class="rounded-xl border px-3 py-2">
+    <input type="text" id="newUsername" placeholder="Username" class="rounded-xl border px-3 py-2">
+    <input type="password" id="newPassword" placeholder="Password" class="rounded-xl border px-3 py-2">
+    <input type="text" id="newPhone" placeholder="Phone" class="rounded-xl border px-3 py-2">
+  </div>
+  <button id="addUserBtn" class="bg-emerald-600 text-white px-4 py-2 rounded-xl hover:bg-emerald-700">Add User</button>
+  <p id="userMsg" class="text-red-600 mt-2 hidden"></p>
+</section>
+
+
+  <!-- Search -->
+  <div class="mb-4">
+    <input id="searchUser" class="w-full rounded-xl border px-3 py-2" placeholder="Search by supermarket name...">
+  </div>
+
+  <!-- Users Table -->
+  <div class="overflow-x-auto bg-white rounded-2xl shadow p-4">
+    <table class="w-full border-collapse">
+      <thead>
+        <tr>
+          <th class="p-2 border">Supermarket</th>
+          <th class="p-2 border">Username</th>
+          <th class="p-2 border">Password</th>
+          <th class="p-2 border">Phone</th>
+          <th class="p-2 border">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="usersRows"></tbody>
+    </table>
+    <p id="emptyUsers" class="hidden text-center text-gray-500 py-6">No users found.</p>
+  </div>
+<script>
+
+  
+  const LS_USERS = 'users';
+let users = JSON.parse(localStorage.getItem(LS_USERS)) || [];
+
+// Only admin can access
+const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+if(!currentUser || currentUser.username !== 'admin') {
+  alert('Access denied!');
+  window.location.href = 'index.html';
+}
+
+const $ = id => document.getElementById(id);
+
+const showAddUserBtn = $('showAddUserBtn');
+const addUserSection = $('addUserSection');
+
+// Toggle Add New User form
+showAddUserBtn.addEventListener('click', () => {
+  addUserSection.classList.toggle('hidden');
+});
+
+// Add New User Logic
+$('addUserBtn').addEventListener('click', () => {
+  const supermarket = $('newSupermarket').value.trim();
+  const username = $('newUsername').value.trim();
+  const password = $('newPassword').value.trim();
+  const phone = $('newPhone').value.trim();
+  const msg = $('userMsg');
+
+  msg.classList.add('hidden');
+
+  if(!supermarket || !username || !password){
+    msg.textContent = 'Supermarket, Username, and Password are required';
+    msg.classList.remove('hidden');
+    return;
+  }
+
+  if(users.some(u => u.username === username)){
+    msg.textContent = 'Username already exists';
+    msg.classList.remove('hidden');
+    return;
+  }
+
+  users.push({ supermarketName: supermarket, username, password, phone, suspended: false });
+  localStorage.setItem(LS_USERS, JSON.stringify(users));
+
+  $('newSupermarket').value = '';
+  $('newUsername').value = '';
+  $('newPassword').value = '';
+  $('newPhone').value = '';
+
+  renderUsers();
+});
+
+// Render Users Table
+function renderUsers() {
+  const tbody = $('usersRows');
+  tbody.innerHTML = '';
+
+  const query = $('searchUser').value.trim().toLowerCase();
+  const filtered = users.filter(u => !query || u.supermarketName.toLowerCase().includes(query));
+
+  $('emptyUsers').classList.toggle('hidden', filtered.length !== 0);
+
+  filtered.forEach((u, index) => {
+  const tr = document.createElement('tr');
+  tr.className = u.suspended ? 'bg-red-50' : '';
+
+  // Check if the user is admin
+  const isAdmin = u.username === 'admin';
+
+  tr.innerHTML = `
+    <td class="p-2">${u.supermarketName}</td>
+    <td class="p-2">${u.username}</td>
+    <td class="p-2">${u.password}</td>
+    <td class="p-2">${u.phone || '-'}</td>
+    <td class="p-2 flex gap-2">
+      ${isAdmin ? '' : `<button class="bg-yellow-500 text-white px-2 py-1 rounded" onclick="editUser(${index})">Edit</button>`}
+      ${isAdmin ? '' : `<button class="bg-rose-600 text-white px-2 py-1 rounded" onclick="deleteUser(${index})">Delete</button>`}
+      ${isAdmin ? '' : `<button class="bg-gray-600 text-white px-2 py-1 rounded" onclick="toggleSuspend(${index})">
+        ${u.suspended ? 'Unsuspend' : 'Suspend'}
+      </button>`}
+    </td>
+  `;
+  tbody.appendChild(tr);
+});
+}
+
+function editUser(i) {
+  const u = users[i];
+  const supermarket = prompt('Supermarket Name:', u.supermarketName);
+  const username = prompt('Username:', u.username);
+  const password = prompt('Password:', u.password);
+  const phone = prompt('Phone:', u.phone || '');
+
+  if(supermarket && username && password){
+    u.supermarketName = supermarket;
+    u.username = username;
+    u.password = password;
+    u.phone = phone;
+    localStorage.setItem(LS_USERS, JSON.stringify(users));
+    renderUsers();
+  }
+}
+
+function deleteUser(i) {
+  if(confirm('Delete this user?')){
+    users.splice(i, 1);
+    localStorage.setItem(LS_USERS, JSON.stringify(users));
+    renderUsers();
+  }
+}
+
+function toggleSuspend(i) {
+  users[i].suspended = !users[i].suspended;
+  localStorage.setItem(LS_USERS, JSON.stringify(users));
+  renderUsers();
+}
+
+// Search logic
+$('searchUser').addEventListener('input', renderUsers);
+
+// Initial render
+renderUsers();
+
+</script>
+</body>
+</html>

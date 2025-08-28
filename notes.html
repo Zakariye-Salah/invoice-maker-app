@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-4">
+
+<header class="flex flex-col sm:flex-row justify-between items-center mb-6">
+  <h1 class="text-2xl font-bold mb-2 sm:mb-0">💬 Notes</h1>
+  <button onclick="window.location.href='index.html'" 
+    class="bg-gray-600 text-white px-4 py-2 rounded-xl hover:bg-gray-700">
+    ← Back
+  </button>
+</header>
+
+<!-- Notes Section -->
+<div id="notesSection" class="bg-white rounded-2xl shadow p-4">
+  <div class="mb-4">
+    <textarea id="noteContent" placeholder="Type your message..." class="w-full rounded-xl border px-3 py-2"></textarea>
+    <select id="noteRecipient" class="w-full rounded-xl border px-3 py-2 mt-2"></select>
+    <button id="sendNoteBtn" class="bg-green-600 text-white px-4 py-2 rounded-xl mt-2 hover:bg-green-700">Send</button>
+  </div>
+
+  <ul id="messagesList" class="space-y-2"></ul>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  // --- Helpers ---
+  function getEl(id){ return document.getElementById(id); }
+
+  // --- Current user ---
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  if(!currentUser){
+    alert("No user logged in!");
+    window.location.href = 'index.html';
+    return;
+  }
+  const isAdmin = currentUser.username === 'admin';
+
+  const LS_MESSAGES = 'notesMessages';
+  let messages = JSON.parse(localStorage.getItem(LS_MESSAGES)) || [];
+
+  // --- Reset unread counter ---
+  localStorage.setItem("lastViewedNotes", Date.now());
+
+  // --- Populate recipients ---
+  if(isAdmin){
+    const users = JSON.parse(localStorage.getItem('users')) || [];
+    getEl('noteRecipient').innerHTML = '<option value="all">All Users</option>';
+    users.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u.username;
+      opt.textContent = `${u.supermarketName} (${u.username})`;
+      getEl('noteRecipient').appendChild(opt);
+    });
+  } else {
+    getEl('noteRecipient').classList.add("hidden");
+  }
+
+  // --- Send note ---
+  getEl('sendNoteBtn').addEventListener('click', () => {
+    const content = getEl('noteContent').value.trim();
+    if(!content) return alert("Message cannot be empty");
+
+    const recipients = isAdmin ? [getEl('noteRecipient').value] : ['admin'];
+    const msg = {
+      id: Date.now(),
+      sender: currentUser.username,
+      content,
+      timestamp: Date.now(),
+      recipients,
+      replies: []
+    };
+    messages.push(msg);
+    localStorage.setItem(LS_MESSAGES, JSON.stringify(messages));
+    getEl('noteContent').value = '';
+    renderMessages();
+  });
+
+  // --- Render messages ---
+  function renderMessages(){
+    const list = getEl('messagesList');
+    list.innerHTML = '';
+
+    messages.forEach(msg => {
+      const visible = isAdmin || msg.recipients.includes('all') || msg.recipients.includes(currentUser.username) || msg.sender === currentUser.username;
+      if(!visible) return;
+
+      const li = document.createElement('li');
+      li.className = 'border p-3 rounded-xl bg-gray-50';
+
+      let html = `<strong>${msg.sender}:</strong> ${msg.content}
+                  <br><small class="text-gray-500">${new Date(msg.timestamp).toLocaleString()}</small>`;
+
+      // Replies
+      msg.replies.forEach(r => {
+        const canDelete = r.sender === currentUser.username || isAdmin;
+        html += `<div class="ml-4 mt-1 border-l pl-2 text-gray-700">
+                  <strong>${r.sender}:</strong> ${r.content}
+                  ${canDelete ? `<button class="ml-2 text-red-600" onclick="deleteReply(${msg.id},${r.id})">Delete</button>` : ''}
+                </div>`;
+      });
+
+      // Reply input
+      if(isAdmin || msg.sender === 'admin' || msg.recipients.includes(currentUser.username)){
+        html += `<div class="ml-4 mt-2">
+                  <button class="bg-blue-600 text-white px-2 py-1 rounded" onclick="toggleReplyInput(${msg.id})">Reply</button>
+                  <div id="replyContainer${msg.id}" class="hidden mt-2 flex gap-2">
+                    <input type="text" placeholder="Type your reply..." id="replyInput${msg.id}" class="flex-1 rounded-xl border px-2 py-1">
+                    <button class="bg-green-600 text-white px-2 py-1 rounded" onclick="sendReply(${msg.id})">Send</button>
+                  </div>
+                </div>`;
+      }
+
+      // Delete button
+      if(isAdmin || msg.sender === currentUser.username){
+        html += `<button class="mt-2 bg-red-600 text-white px-2 py-1 rounded" onclick="deleteMessage(${msg.id})">Delete</button>`;
+      }
+
+      li.innerHTML = html;
+      list.appendChild(li);
+    });
+  }
+
+  // --- Reply functions ---
+  window.toggleReplyInput = function(msgId){
+    const container = getEl(`replyContainer${msgId}`);
+    if(container) container.classList.toggle('hidden');
+  }
+
+  window.sendReply = function(msgId){
+    const input = getEl(`replyInput${msgId}`);
+    if(!input) return;
+    const content = input.value.trim();
+    if(!content) return;
+
+    const msg = messages.find(m => m.id === msgId);
+    if(!msg) return;
+
+    msg.replies.push({ id: Date.now(), sender: currentUser.username, content, timestamp: Date.now() });
+    localStorage.setItem(LS_MESSAGES, JSON.stringify(messages));
+    input.value = '';
+    renderMessages();
+  }
+
+  // --- Delete functions ---
+  window.deleteMessage = function(id){
+    if(!confirm("Are you sure you want to delete this message?")) return;
+    messages = messages.filter(m => m.id !== id);
+    localStorage.setItem(LS_MESSAGES, JSON.stringify(messages));
+    renderMessages();
+  }
+
+  window.deleteReply = function(msgId, replyId){
+    if(!confirm("Are you sure you want to delete this reply?")) return;
+    const msg = messages.find(m => m.id === msgId);
+    if(!msg) return;
+    msg.replies = msg.replies.filter(r => r.id !== replyId);
+    localStorage.setItem(LS_MESSAGES, JSON.stringify(messages));
+    renderMessages();
+  }
+
+  // --- Initial render ---
+  renderMessages();
+});
+</script>
+
+</body>
+</html>
+
