@@ -3,8 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Invoice Maker – Step 2</title>
+  <title>Invoice Maker</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-KtH6cL3sV+2F/..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+
   <style>
     @media print { .no-print { display: none !important; } }
     .hidden-section { display: none; }
@@ -57,6 +59,39 @@
   }
 }
 
+  /* Mobile-friendly table stacking on very small screens */
+  @media (max-width: 480px) {
+    table, thead, tbody, th, td, tr {
+      display: block;
+    }
+    thead tr {
+      display: none;
+    }
+    tbody tr {
+      margin-bottom: 1rem;
+      border: 1px solid #ddd;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+    }
+    td {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.25rem 0.5rem;
+      border: none;
+    }
+    td::before {
+      content: attr(data-label);
+      font-weight: bold;
+    }
+    .no-print {
+      display: flex; /* keep buttons visible */
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+  }
+
+
+
   </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -64,43 +99,85 @@
 
  
 
-    <header class="mb-6 flex items-center justify-between">
-      <h1 class="text-2xl font-bold">🧾 Invoice Maker</h1>
-      <div class="flex gap-2 items-center">
-        <!-- Suspended Message -->
-<p id="suspendedMsg" class="hidden bg-red-100 text-red-700 px-4 py-2 rounded mb-4 text-center"></p>
-
-   
-<button id="notesBtn" onclick="window.location.href='notes.html'" class="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 relative">
-  Notes
-  <span id="notesCounter" class="absolute -top-2 -right-3 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full hidden"></span>
-</button>
-        
-
-        <button id="logoutBtn" class="btn rounded-xl bg-red-600 px-4 py-2 text-white hover:bg-red-700">
-          Logout
+    <header class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
+      <!-- Title -->
+      <h1 class="text-2xl font-bold flex items-center gap-2 text-blue-700">
+        <span>🧾</span> Invoice Maker
+      </h1>
+    
+      <!-- Actions -->
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <!-- Language -->
+        <button id="langBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded shadow transition-all duration-200">
+          ENG
         </button>
     
-        <!-- Users button, hidden by default -->
-        <button id="usersBtn" class="btn rounded-xl bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 hidden">
-          Users
+        <!-- Export -->
+        <button id="exportBtn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded shadow transition-all duration-200">
+          Export Invoices
         </button>
     
-        <span id="storeDisplay" class="font-semibold text-gray-700"></span>
+        <!-- Login/Edit User -->
+        <button id="loginbtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow relative transition-all duration-200">
+          Login
+        </button>
+    
+        <!-- Store Label -->
+        <span id="storeDisplay" class="font-semibold text-gray-700 px-2 py-1 bg-gray-100 rounded shadow inline-block"></span>
+
       </div>
     </header>
     
+    
 
-    <!-- MODAL FOR SUPERMARKET -->
+<!-- ========== LOGIN / EDIT SUPERMARKET MODAL ========== -->
+<div id="loginModal" class="modal-bg hidden">
+  <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
+    <h2 id="modalTitle" class="text-lg font-bold mb-4">Supermarket Login</h2>
+    <label class="block mb-2">
+      <span class="text-sm">Supermarket Name *</span>
+      <input id="supermarketName" class="mt-1 w-full border px-3 py-2 rounded-xl" placeholder="e.g. Kowthar Supermarket" required />
+    </label>
+    <label class="block mb-2">
+      <span class="text-sm">Supermarket Address</span>
+      <input id="supermarketAddress" class="mt-1 w-full border px-3 py-2 rounded-xl" placeholder="e.g. Hamarweyne, Mogadishu" />
+    </label>
+    <label class="block mb-2">
+      <span class="text-sm">Supermarket Gmail</span>
+      <input id="supermarketGmail" type="email" class="mt-1 w-full border px-3 py-2 rounded-xl" placeholder="e.g. example@gmail.com" />
+    </label>
+    <label class="block mb-2">
+      <span class="text-sm">Supermarket Phone</span>
+      <input id="supermarketPhone" class="mt-1 w-full border px-3 py-2 rounded-xl" placeholder="e.g. 617XXXXXX" />
+    </label>
+    <label class="block mb-4">
+      <span class="text-sm">Country Code</span>
+      <input id="countryCode" class="mt-1 w-full border px-3 py-2 rounded-xl" placeholder="+252" value="+252" />
+    </label>
+
+    <div class="flex justify-end gap-2">
+      <button id="cancelLogin" class="px-4 py-2 rounded-xl bg-gray-400 hover:bg-gray-500 text-white">Cancel</button>
+      <button id="saveLogin" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white">Save</button>
+    </div>
+  </div>
+</div>
  
     <!-- CREATE INVOICE BUTTON -->
-    <div class="mb-4">
-      <button id="createInvoiceBtn" class="rounded-xl bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 no-print">
-        Create Invoice
+    <div class="mb-4 flex items-center justify-between flex-wrap gap-2">
+      <!-- Create Invoice Button -->
+      <button id="createInvoiceBtn" 
+              class="rounded-xl bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 shadow transition-all duration-200 flex items-center gap-2 no-print">
+        ➕ Create Invoice
       </button>
-      <span id="currentTime" class="ml-2 text-sm text-gray-200" style="margin-left: 50%; color: red;"></span>
-
+    
+      <!-- Current Time Display -->
+      <span id="currentTime" class="text-sm text-red-500 font-semibold">
+        <!-- JS will update time here -->
+      </span>
+    
+     
     </div>
+    
 
 
 
@@ -155,39 +232,58 @@
       <p id="formMsg" class="hidden mt-3 text-red-600 text-sm"></p>
     </section>
     
+<!-- INVOICES LIST -->
+<section class="bg-white rounded-2xl shadow p-4 sm:p-6">
+<!-- Header: Title + Filters + Buttons -->
+<div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+  <h2 id="invoicesTitle" class="text-lg font-semibold mr-3">Invoices</h2>
 
-    <!-- INVOICES LIST -->
-    <section class="bg-white rounded-2xl shadow p-4 sm:p-6">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-lg font-semibold">Invoices</h2>
-        <div class="flex gap-2 no-print">
-          <select id="filterStatus" class="rounded-xl border px-3 py-2">
-            <option value="all">All</option>
-            <option value="paid">Paid</option>
-            <option value="unpaid">Unpaid</option>
-          </select>
-          <input id="searchName" class="rounded-xl border px-3 py-2" placeholder="Search by name..." />
-        </div>
-      </div>
+  <div class="flex flex-wrap items-center gap-2 flex-1 min-w-[250px]">
+    <button id="clearPaidBtn" class="bg-red-600 text-white px-3 py-2 rounded whitespace-nowrap">Clear Paid</button>
 
-      <div class="overflow-x-auto">
-        <table class="w-full min-w-[600px] border-collapse">
-          <thead>
-            <tr>
-              <th class="p-2 border">Invoice</th>
-              <th class="p-2 border">Date</th>
-              <th class="p-2 border">Customer</th>
-              <th class="p-2 border">Phone</th>
-              <th class="p-2 border">Amount</th>
-              <th class="p-2 border">Paid</th>
-              <th class="p-2 border">Balance</th>
-              <th class="p-2 border">Status</th>
-              <th class="p-2 border">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="invoiceRows"></tbody>
-        </table>
-      </div>
+    <select id="filterStatus" class="rounded-xl border px-3 py-2 whitespace-nowrap">
+      <option value="all">All</option>
+      <option value="paid">Paid</option>
+      <option value="unpaid">Unpaid</option>
+    </select>
+
+    <input id="searchName" class="rounded-xl border px-3 py-2 flex-1 min-w-[120px]" placeholder="Search by name..." />
+  </div>
+</div>
+
+<!-- Reminder Buttons -->
+<div class="flex flex-wrap items-center gap-2 mb-4">
+  <select id="reminderMethod" class="border rounded px-2 py-1 whitespace-nowrap">
+    <option value="wa">WhatsApp</option>
+    <option value="sms">SMS</option>
+  </select>
+  <button id="sendAllReminders" class="bg-purple-600 text-white px-3 py-2 rounded whitespace-nowrap">
+    Send All Reminders
+  </button>
+</div>
+
+<div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
+      <thead class="hidden sm:table-header-group">
+        <tr>
+          <th class="p-2 font-medium text-blue-600">No</th>
+          <th class="p-2 font-medium text-blue-600">Invoice</th>
+          <th class="p-2 font-medium text-blue-600">Date</th>
+          <th class="p-2 font-medium text-blue-600">Customer</th>
+          <th class="p-2 font-medium text-blue-600">Phone</th>
+          <th class="p-2 font-medium text-blue-600 text-right">Amount</th>
+          <th class="p-2 font-medium text-blue-600 text-right">Paid</th>
+          <th class="p-2 font-medium text-blue-600 text-right">Balance</th>
+          <th class="p-2 font-medium text-blue-600">Status</th>
+          <th class="p-2 font-medium text-blue-600 no-print">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="invoiceRows" class="block sm:table-row-group"></tbody>
+    </table>
+  </div>
+</section>
+
+   
       
 
       <p id="emptyState" class="hidden text-center text-gray-500 py-6">No invoices yet.</p>
@@ -195,21 +291,246 @@
   </div>
 
 
+  <!-- Footer -->
+<footer class="bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-200 px-6 py-6 mt-8 border-t border-gray-300 dark:border-gray-700">
+  <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+
+    <!-- Left: Copyright -->
+    <div class="text-sm text-gray-600 dark:text-gray-400">
+      &copy; 2025 <span class="font-semibold">Zakariye</span>. All rights reserved.
+    </div>
+
+    <!-- Right: Social links -->
+    <div class="flex gap-4 items-center">
+
+      <!-- Gmail -->
+      <a href="mailto:engzaki410@gmail.com" target="_blank" class="hover:text-red-600 transition-colors" title="Email">
+        <i class="fa-solid fa-envelope fa-lg"></i>
+      </a>
+
+      <!-- WhatsApp -->
+      <a href="https://wa.me/252617125558" target="_blank" class="hover:text-green-500 transition-colors" title="WhatsApp">
+        <i class="fa-brands fa-whatsapp fa-lg"></i>
+      </a>
+
+      <!-- Facebook -->
+      <a href="https://www.facebook.com/share/19ayTrQCzP/" target="_blank" class="hover:text-blue-800 transition-colors" title="Facebook">
+        <i class="fa-brands fa-facebook fa-lg"></i>
+      </a>
+
+      <!-- GitHub -->
+      <a href="https://github.com/Zakariye-Salah/" target="_blank" class="hover:text-gray-900 dark:hover:text-white transition-colors" title="GitHub">
+        <i class="fa-brands fa-github fa-lg"></i>
+      </a>
+
+    </div>
+  </div>
+</footer>
+
+
+
+<!-- Add jsPDF library (add in your HTML <head> or before your script) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <script>
-  
-  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-if(!currentUser){
-  window.location.href = 'login.html'; // redirect to login if not logged in
+// -------------------- LANGUAGE SETUP -------------------- //
+// Default: Somali if first time
+let currentLang = localStorage.getItem("lang") || "som";
+localStorage.setItem("lang", currentLang);
+
+// Update button label
+const langBtnEl = document.getElementById("langBtn");
+if (langBtnEl) langBtnEl.innerText = currentLang === "eng" ? "ENG" : "SOM";
+
+// Helper
+function t(key) {
+  return translations[currentLang]?.[key] || key;
 }
 
-  if(!localStorage.getItem('users')) {
-  const defaultUsers = [
-    { username: 'admin', password: 'admin123', supermarketName: 'Admin' },
-    { username: 'user1', password: '123456', supermarketName: 'Market 1' }
-  ];
-  localStorage.setItem('users', JSON.stringify(defaultUsers));
+// -------------------- TRANSLATIONS -------------------- //
+const translations = {
+  som: {
+    searchPlaceholder: "Raadi Macmiil ama Invoice",
+    filterAll: "Dhammaan",
+    filterPaid: "Bixiyay",
+    filterUnpaid: "Bixinin",
+    emptyState: "Ma jiraan invoices la helay",
+    createInvoice: "Samee Invoice",
+    customerName: "Magaca Macmiilka",
+    customerPhone: "Telefoonka Macmiilka",
+    invoiceDate: "Taariikhda Invoice",
+    totalAmount: "Wadarta Lacagta",
+    amountPaid: "Lacagta La Bixiyay",
+    status: "Xaaladda",
+    no: "No",
+    invoice: "Invoice",
+    date: "Taariikh",
+    customer: "Macmiil",
+    phone: "Telefoon",
+    amount: "Tiro",
+    paidBtn: "Bixiyay",
+    unpaidBtn: "Bixinin",
+    addItem: "+ Ku dar Shay",
+    description: "Sheyga lagatay",
+    balance: "Hadhaaga",
+    actions: "Hawlaha",
+    exportInvoices: "Degso Invoices",
+    login: "Gali",
+    editUser: "Beddel Isticmaalaha",
+    clearPaid: "Tirtir bixiyaasha",
+    sendAllReminders: "Dir Dhammaan Xasuusinta",
+    invoicesTitle: "Biilal",
+    storeLabel: "Dukaan: {name}"
+  },
+  eng: {
+    searchPlaceholder: "Search Customer or Invoice",
+    filterAll: "All",
+    filterPaid: "Paid",
+    filterUnpaid: "Unpaid",
+    emptyState: "No invoices found",
+    createInvoice: "Create Invoice",
+    customerName: "Customer Name",
+    customerPhone: "Customer Phone",
+    invoiceDate: "Invoice Date",
+    totalAmount: "Total Amount",
+    amountPaid: "Amount Paid",
+    status: "Status",
+    no: "No",
+    invoice: "Invoice",
+    date: "Date",
+    customer: "Customer",
+    phone: "Phone",
+    amount: "Amount",
+    paidBtn: "Paid",
+    unpaidBtn: "Unpaid",
+    addItem: "+ Add Item",
+    description: "Description",
+    balance: "Balance",
+    actions: "Actions",
+    exportInvoices: "Export Invoices",
+    login: "Login",
+    editUser: "Edit User",
+    clearPaid: "Clear Paid",
+    sendAllReminders: "Send All Reminders",
+    invoicesTitle: "Invoices",
+    storeLabel: "Store: {name}"
+  }
+};
+
+// -------------------- STORE & LOGIN -------------------- //
+function updateStoreName(storeName) {
+  const label = t("storeLabel").replace("{name}", storeName);
+  const storeEl = document.getElementById("storeDisplay");
+  if (storeEl) storeEl.innerText = label;
 }
 
+function updateLoginButton() {
+  const loginBtn = document.getElementById("loginbtn");
+  const user = JSON.parse(localStorage.getItem("currentUser"));
+  if (loginBtn) loginBtn.innerText = user ? t("editUser") : t("login");
+}
+
+// -------------------- UI UPDATES -------------------- //
+function updateTableHeaders() {
+  const headers = document.querySelectorAll("table thead th");
+  if (!headers || headers.length < 10) return;
+  headers[0].innerText = t("no");
+  headers[1].innerText = t("invoice");
+  headers[2].innerText = t("date");
+  headers[3].innerText = t("customer");
+  headers[4].innerText = t("phone");
+  headers[5].innerText = t("amount");
+  headers[6].innerText = t("paid");
+  headers[7].innerText = t("balance");
+  headers[8].innerText = t("status");
+  headers[9].innerText = t("actions");
+}
+
+function updateButtonsAndTitles() {
+  const createBtn = document.getElementById("createInvoiceBtn");
+  if (createBtn) createBtn.innerText = t("createInvoice");
+
+  const exportBtn = document.getElementById("exportBtn");
+  if (exportBtn) exportBtn.innerText = t("exportInvoices");
+
+  const loginBtn = document.getElementById("loginbtn");
+  if (loginBtn) updateLoginButton();
+
+  const clearPaidBtn = document.getElementById("clearPaidBtn");
+  if (clearPaidBtn) clearPaidBtn.innerText = t("clearPaid");
+
+  const sendAllBtn = document.getElementById("sendAllReminders");
+  if (sendAllBtn) sendAllBtn.innerText = t("sendAllReminders");
+
+  const invoicesTitle = document.getElementById("invoicesTitle");
+  if (invoicesTitle) invoicesTitle.innerText = t("invoicesTitle");
+}
+
+// -------------------- OTHER TEXTS -------------------- //
+function updateOtherTexts() {
+  const searchInput = document.getElementById("searchName");
+  if (searchInput) searchInput.placeholder = t("searchPlaceholder");
+
+  const filter = document.getElementById("filterStatus");
+  if (filter && filter.options.length >= 3) {
+    filter.options[0].text = t("filterAll");
+    filter.options[1].text = t("filterPaid");
+    filter.options[2].text = t("filterUnpaid");
+  }
+
+  const empty = document.getElementById("emptyState");
+  if (empty) empty.innerText = t("emptyState");
+
+  const customerNameInput = document.getElementById("customerName");
+  if (customerNameInput) customerNameInput.placeholder = t("customerName");
+
+  const customerPhoneInput = document.getElementById("customerPhone");
+  if (customerPhoneInput) customerPhoneInput.placeholder = t("customerPhone");
+
+  const invoiceDateInput = document.getElementById("invoiceDate");
+  if (invoiceDateInput) invoiceDateInput.placeholder = t("invoiceDate");
+
+  const amountInput = document.getElementById("amount");
+  if (amountInput) amountInput.placeholder = t("totalAmount");
+
+  const paidInput = document.getElementById("paid");
+  if (paidInput) paidInput.placeholder = t("amountPaid");
+
+  const statusSelect = document.getElementById("status");
+  if (statusSelect) {
+    for (const opt of statusSelect.options) {
+      if (opt.value === "paid") opt.text = t("filterPaid");
+      if (opt.value === "unpaid") opt.text = t("filterUnpaid");
+    }
+  }
+}
+
+// -------------------- APPLY ALL -------------------- //
+function applyTranslations() {
+  updateOtherTexts();
+  updateTableHeaders();
+  updateButtonsAndTitles();
+  if (typeof renderInvoices === "function") renderInvoices();
+  updateStoreName("Xaliye Shop"); // ✅ dynamically set store name
+  updateLoginButton(); // ✅ login/edit translated
+}
+
+// -------------------- EVENTS -------------------- //
+if (langBtnEl) {
+  langBtnEl.addEventListener("click", () => {
+    currentLang = currentLang === "som" ? "eng" : "som";
+    localStorage.setItem("lang", currentLang);
+    langBtnEl.innerText = currentLang === "eng" ? "ENG" : "SOM";
+    applyTranslations();
+  });
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  applyTranslations();
+});
+
+
+//////////////////
   const LS_CURRENT_USER = 'currentUser';
   const LS_INVOICES = 'invoices_v1';
   
@@ -219,10 +540,6 @@ if(!currentUser){
 
   let invoices = JSON.parse(localStorage.getItem(LS_INVOICES)) || [];
   
-  if (!currentUser) {
-    alert('Please login first');
-    window.location.href = 'login.html';
-  }
   
   const $ = id => document.getElementById(id);
   const fmt = n => Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -231,18 +548,6 @@ if(!currentUser){
     const d = new Date(); const pad = x=>String(x).padStart(2,'0');
     return `INV-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}-${Math.floor(Math.random()*1000)}`;
   };
-  const usersBtn = $('usersBtn');
-
-if(currentUser && currentUser.username === 'admin' && currentUser.password === 'admin123') {
-  usersBtn.classList.remove('hidden');
-} else {
-  usersBtn.classList.add('hidden');
-}
-
-// Redirect to manage users page on click
-usersBtn.addEventListener('click', () => {
-  window.location.href = 'users.html';
-});
  
   const createInvoiceBtn = document.getElementById("createInvoiceBtn");
 const createInvoiceSection = document.getElementById("createInvoiceSection");
@@ -263,12 +568,83 @@ createInvoiceSection.classList.toggle("hidden-section");
     renderInvoices();
   }
   
+  let currentUser = JSON.parse(localStorage.getItem(LS_CURRENT_USER)) || null;
+
+const loginBtn = $("loginbtn");
+const loginModal = $("loginModal");
+const modalTitle = $("modalTitle");
+
+// Open modal
+loginBtn.addEventListener("click", () => { 
+  loginModal.classList.remove('hidden'); // show modal
+  loginModal.classList.add('flex');      // apply flex
+
+  if(currentUser){
+    modalTitle.textContent = "Edit Supermarket Details";
+    $("supermarketName").value = currentUser.supermarketName || "";
+    $("supermarketAddress").value = currentUser.supermarketAddress || "";
+    $("supermarketGmail").value = currentUser.supermarketGmail || "";
+    $("supermarketPhone").value = currentUser.supermarketPhone || "";
+    $("countryCode").value = currentUser.countryCode || "+252";
+  } else {
+    modalTitle.textContent = "Supermarket Login";
+    $("supermarketName").value = "";
+    $("supermarketAddress").value = "";
+    $("supermarketGmail").value = "";
+    $("supermarketPhone").value = "";
+    $("countryCode").value = "+252";
+  }
+});
+
+
+// Cancel
+$("cancelLogin").addEventListener("click", () => {
+  loginModal.classList.add('hidden');    // hide modal
+loginModal.classList.remove('flex');   // remove flex
+});
+
+// Save supermarket info
+$("saveLogin").addEventListener("click", () => {
+  const supermarketName = $("supermarketName").value.trim();
+  const supermarketAddress = $("supermarketAddress").value.trim();
+  const supermarketGmail = $("supermarketGmail").value.trim();
+  const supermarketPhone = $("supermarketPhone").value.trim();
+  const countryCode = $("countryCode").value.trim() || "+252";
+
+  if(!supermarketName){
+    alert("Supermarket name is required!");
+    return;
+  }
+
+  currentUser = { supermarketName, supermarketAddress, supermarketGmail, supermarketPhone, countryCode };
+  localStorage.setItem(LS_CURRENT_USER, JSON.stringify(currentUser));
+
+  $("storeDisplay").textContent = `Store: ${currentUser.supermarketName}`;
+  loginBtn.textContent = "Edit User";
+  loginModal.classList.add('hidden');    // hide modal
+  loginModal.classList.remove('flex');   // remove flex
+
+
+  load();
+});
+
+// Auto load supermarket info if logged in
+window.addEventListener("DOMContentLoaded", () => {
+  if(currentUser){
+    $("storeDisplay").textContent = `Store: ${currentUser.supermarketName}`;
+    loginBtn.textContent = "Edit User";
+    load();
+  }
+});
+
+
   // SAVE INVOICE for current supermarket
   function saveInvoice(inv) {
     inv.supermarketName = currentUser.supermarketName;
     invoices.push(inv);
     localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
     renderInvoices();
+
   }
   
   // VALIDATE INVOICE
@@ -286,165 +662,201 @@ createInvoiceSection.classList.toggle("hidden-section");
     if(paid>amount){formMsg.textContent='Paid <= Total'; formMsg.classList.remove('hidden'); return false;}
     return true;
   }
-  // Check if current user is suspended
-function isSuspended() {
-  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-  return currentUser?.suspended;
+
+
+
+
+ 
+
+
+function getTranslatedStatus(status) {
+  if (status === "paid") return t("filterPaid");   // "Bixiyay" in Somali
+  if (status === "unpaid") return t("filterUnpaid"); // "Bixinin" in Somali
+  return status;
 }
 
+function renderInvoices() {
+  const tbody = $('invoiceRows');
+  tbody.innerHTML = '';
 
-
-
-  // RENDER INVOICES (filtered by current supermarket)
-  function renderInvoices() {
-  const tbody = $('invoiceRows'); 
-  tbody.innerHTML='';
-
-  const filter = $('filterStatus').value; 
+  const filter = $('filterStatus').value;
   const query = $('searchName').value.trim().toLowerCase();
 
+  if (!Array.isArray(invoices)) return;
+
   const list = invoices.filter(inv => {
-    if(inv.supermarketName !== currentUser.supermarketName) return false;
-    const okStatus = filter==='all' || inv.status===filter;
-    const okSearch = !query || inv.name.toLowerCase().includes(query) || inv.invoiceNumber.toLowerCase().includes(query);
+    if (!inv || !currentUser) return false;
+    if (inv.supermarketName !== currentUser.supermarketName) return false;
+    const okStatus = filter === 'all' || (inv.status || '').toLowerCase() === filter;
+    const okSearch = !query || (inv.name || '').toLowerCase().includes(query) || (inv.invoiceNumber || '').toLowerCase().includes(query);
     return okStatus && okSearch;
   });
 
-  $('emptyState').classList.toggle('hidden', list.length!==0);
-
-  // Suspended logic
-  const suspendedMsg = $('suspendedMsg');
-  const isSuspended = currentUser?.suspended;
-
-  if(isSuspended){
-    suspendedMsg.textContent = "You are suspended. Please contact our WhatsApp: 0617125558";
-    suspendedMsg.classList.remove('hidden');
-  } else {
-    suspendedMsg.classList.add('hidden');
+  if ($('emptyState')) {
+    $('emptyState').classList.toggle('hidden', list.length !== 0);
   }
 
-  const disabled = isSuspended ? 'disabled class="opacity-50 cursor-not-allowed"' : '';
+  const icons = {
+    whatsapp: `<i class="fa-brands fa-whatsapp"></i>`,
+    sms: `<i class="fa-solid fa-comment"></i>`,
+    print: `<i class="fa-solid fa-print"></i>`,
+    paid: `<i class="fa-solid fa-check"></i>`,
+    unpaid: `<i class="fa-solid fa-xmark"></i>`,
+    duplicate: `<i class="fa-solid fa-copy"></i>`,
+    edit: `<i class="fa-solid fa-pen-to-square"></i>`,
+    delete: `<i class="fa-solid fa-trash"></i>`
+  };
 
-  list.forEach(inv => {
-  const tr = document.createElement('tr');
-  tr.className = inv.status === 'unpaid' && inv.balance > 0 ? 'bg-red-50' : '';
+  const lang = localStorage.getItem('lang') || 'som';
+  const labels = {
+    date: lang === 'som' ? 'Taariikh' : 'Date',
+    customer: lang === 'som' ? 'Macmiil' : 'Customer',
+    phone: lang === 'som' ? 'Telefoon' : 'Phone',
+    amount: lang === 'som' ? 'Qiime' : 'Amount',
+    paidLabel: lang === 'som' ? 'La bixiyay' : 'Paid',
+    balanceLabel: lang === 'som' ? 'Hadhaaga' : 'Balance',
+    paidBtn: lang === 'som' ? 'Bixiyay' : 'Paid',
+    unpaidBtn: lang === 'som' ? 'Bixinin' : 'Unpaid'
+  };
 
-  // If user is suspended, disable buttons
-  const disabled = inv.suspended ? 'disabled class="opacity-50 cursor-not-allowed"' : '';
+  list.forEach((inv, index) => {
+    if (!inv) return;
 
-  tr.innerHTML = `
-    <td class="p-2 font-medium">${inv.invoiceNumber}</td>
-    <td class="p-2">${inv.date}</td>
-    <td class="p-2">${inv.name}</td>
-    <td class="p-2">${inv.phone}</td>
-    <td class="p-2">$${fmt(inv.amount)}</td>
-    <td class="p-2">$${fmt(inv.paid)}</td>
-    <td class="p-2">$${fmt(inv.balance)}</td>
-    <td class="p-2">
-      <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${inv.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
-        ${inv.status.toUpperCase()}
-      </span>
-    </td>
-    <td class="p-2 no-print">
-      <div class="flex flex-wrap gap-2">
-        <!-- WhatsApp -->
-        <button ${disabled} class="rounded-lg bg-green-600 hover:bg-green-700 text-white p-2" onclick="sendWhatsApp(${inv.id})" title="WhatsApp">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M20.52 3.48a11.958 11.958 0 0 0-16.97 0c-4.686 4.686-4.686 12.282 0 16.97l-1.23 4.5 4.617-1.214a11.958 11.958 0 0 0 16.97-16.97zm-8.52 16.52a9 9 0 1 1 0-18 9 9 0 0 1 0 18z"/>
-            <path d="M16.29 14.04c-.23-.12-1.36-.67-1.57-.74-.21-.07-.36-.12-.52.12-.17.23-.65.74-.8.89-.15.15-.31.17-.57.06-.23-.11-.97-.36-1.85-1.14-.68-.6-1.14-1.34-1.28-1.57-.13-.23-.01-.35.1-.46.1-.1.23-.26.35-.39.12-.13.16-.22.23-.37.07-.15.03-.28-.01-.39-.05-.11-.52-1.25-.71-1.71-.18-.45-.36-.39-.52-.39-.13 0-.28-.01-.43-.01-.15 0-.39.05-.59.28-.2.23-.77.75-.77 1.82 0 1.06.79 2.08.9 2.22.12.14 1.55 2.37 3.76 3.32.53.23.94.37 1.26.48.53.18 1.02.15 1.4.09.43-.07 1.36-.55 1.55-1.08.18-.53.18-.98.13-1.08-.05-.1-.21-.16-.44-.28z"/>
-          </svg>
-        </button>
+    const status = (inv.status || 'unpaid').toLowerCase();
+    const paid = inv.paid != null ? inv.paid : 0;
+    const balance = inv.balance != null ? inv.balance : 0;
+    const amount = inv.amount != null ? inv.amount : 0;
 
-        <!-- SMS -->
-        <button ${disabled} class="rounded-lg bg-blue-600 hover:bg-blue-700 text-white p-2" onclick="sendSMS(${inv.id})" title="SMS">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M4 4h16v12H5.17L4 17.17V4z"/>
-          </svg>
-        </button>
+    const rowBg = status === 'paid'
+      ? 'bg-gray-50 dark:bg-gray-700'
+      : 'bg-gray-200 dark:bg-gray-600';
 
-        <!-- Print -->
-        <button ${disabled} class="rounded-lg bg-gray-700 hover:bg-gray-800 text-white p-2" onclick='printInvoice(${JSON.stringify(inv)})' title="Print">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M6 9h12v7H6V9zm0-3h12V6H6v0zm4 11h4v2h-4v-2z"/>
-          </svg>
-        </button>
+      const statusClasses = status === 'paid'
+  ? 'bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-100'
+  : 'bg-red-500 text-white dark:bg-red-700 dark:text-gray-100'; // red only for unpaid
 
-        <!-- Mark Paid / Unpaid -->
-        ${inv.status === 'paid' 
-          ? `<button ${disabled} class="rounded-lg bg-amber-600 hover:bg-amber-700 text-white p-2" onclick='markUnpaid(${inv.id})' title="Mark Unpaid">
-               <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
-                 <path d="M9 16.2l-3.5-3.5 1.41-1.41L9 13.38l7.09-7.09 1.41 1.41z"/>
-               </svg>
-             </button>`
-          : `<button ${disabled} class="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white p-2" onclick='markPaid(${inv.id})' title="Mark Paid">
-               <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
-                 <path d="M9 16.2l-3.5-3.5 1.41-1.41L9 13.38l7.09-7.09 1.41 1.41z"/>
-               </svg>
-             </button>`
-        }
 
-        <!-- Edit -->
-        <button ${disabled} class="bg-yellow-500 text-white p-2 rounded" onclick="editInvoice(${inv.id})" title="Edit">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.9959.9959 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-          </svg>
-        </button>
+    const statusText = status === 'paid' ? labels.paidBtn : labels.unpaidBtn;
 
-        <!-- Delete -->
-        <button ${disabled} class="rounded-lg bg-rose-600 hover:bg-rose-700 text-white p-2" onclick='deleteInvoice(${inv.id})' title="Delete">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-4.5l-1-1z"/>
-          </svg>
-        </button>
-      </div>
-    </td>
-  `;
+    const tr = document.createElement('tr');
+    tr.className = rowBg;
 
-  tbody.appendChild(tr);
-});
+    tr.innerHTML = `
+      <!-- Desktop columns -->
+      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">${index + 1}</td>
+      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">${inv.invoiceNumber || '-'}</td>
+      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">${inv.date || '-'}</td>
+      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">${inv.name || '-'}</td>
+      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">${inv.phone || '-'}</td>
+      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">$${fmt(amount)}</td>
+      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">$${fmt(paid)}</td>
+      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">$${fmt(balance)}</td>
+      <td class="hidden sm:table-cell p-2">
+        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs sm:text-sm font-semibold ${statusClasses}">
+          ${statusText}
+        </span>
+      </td>
+      <td class="hidden sm:table-cell p-2 no-print">
+        <div class="flex flex-wrap gap-1 sm:gap-2">
+          <button class="rounded-lg bg-green-600 hover:bg-green-700 text-white dark:text-gray-200 p-1 sm:p-2" onclick="sendWhatsApp(${inv.id})" title="WhatsApp">${icons.whatsapp}</button>
+          <button class="rounded-lg bg-blue-600 hover:bg-blue-700 text-white dark:text-gray-200 p-1 sm:p-2" onclick="sendSMS(${inv.id})" title="SMS">${icons.sms}</button>
+          <button class="rounded-lg bg-gray-700 hover:bg-gray-800 text-white dark:text-gray-200 p-1 sm:p-2" onclick="printInvoiceById(${inv.id})" title="Print">${icons.print}</button>
+          ${
+            status === 'paid'
+              ? `<button class="rounded-lg bg-gray-300 hover:bg-gray-400 text-gray-900 dark:bg-gray-500 dark:text-gray-100 p-1 sm:p-2" onclick='markUnpaid(${inv.id})'>${icons.unpaid}</button>`
+              : `<button class="rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-gray-100 p-1 sm:p-2" onclick='markPaid(${inv.id})'>${icons.paid}</button>`
+          }
+          <button class="rounded-lg bg-purple-600 hover:bg-purple-700 text-white dark:text-gray-200 p-1 sm:p-2" onclick="duplicateInvoice(${inv.id})">${icons.duplicate}</button>
+          <button class="bg-yellow-500 text-white dark:text-gray-200 p-1 sm:p-2 rounded" onclick="editInvoice(${inv.id})">${icons.edit}</button>
+          <button class="rounded-lg bg-rose-600 hover:bg-rose-700 text-white dark:text-gray-200 p-1 sm:p-2" onclick='deleteInvoice(${inv.id})'>${icons.delete}</button>
+        </div>
+      </td>
 
-  const createBtn = $('createInvoiceBtn');
-  if(isSuspended){
-    createBtn.disabled = true;
-    createBtn.classList.add('opacity-50', 'cursor-not-allowed');
-  } else {
-    createBtn.disabled = false;
-    createBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-  }
+      <!-- Mobile card -->
+      <td class="sm:hidden p-3">
+        <div class="${rowBg} shadow rounded-2xl p-4 mb-3">
+          <div class="flex justify-between items-center mb-2">
+            <div class="text-base font-bold text-blue-600 dark:text-blue-400">#${index + 1} - ${inv.invoiceNumber || '-'}</div>
+            <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${statusClasses}">
+              ${statusText}
+            </span>
+          </div>
+          <div class="mb-1 text-gray-800 dark:text-gray-200"><span class="font-semibold">${labels.date}:</span> ${inv.date || '-'}</div>
+          <div class="mb-1 text-gray-800 dark:text-gray-200"><span class="font-semibold">${labels.customer}:</span> ${inv.name || '-'}</div>
+          <div class="mb-1 text-gray-800 dark:text-gray-200"><span class="font-semibold">${labels.phone}:</span> ${inv.phone || '-'}</div>
+          <div class="mb-2 text-gray-800 dark:text-gray-200">
+            <span class="font-semibold">${labels.amount}:</span> $${fmt(amount)} &nbsp;
+            <span class="font-semibold">${labels.paidLabel}:</span> $${fmt(paid)} &nbsp;
+            <span class="font-semibold">${labels.balanceLabel}:</span> $${fmt(balance)}
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button class="rounded-lg bg-green-600 hover:bg-green-700 text-white dark:text-gray-200 px-3 py-2 text-sm" onclick="sendWhatsApp(${inv.id})">${icons.whatsapp}</button>
+            <button class="rounded-lg bg-blue-600 hover:bg-blue-700 text-white dark:text-gray-200 px-3 py-2 text-sm" onclick="sendSMS(${inv.id})">${icons.sms}</button>
+            <button class="rounded-lg bg-gray-700 hover:bg-gray-800 text-white dark:text-gray-200 px-3 py-2 text-sm" onclick="printInvoiceById(${inv.id})">${icons.print}</button>
+            ${
+              status === 'paid'
+                ? `<button class="rounded-lg bg-gray-300 hover:bg-gray-400 text-gray-900 dark:bg-gray-500 dark:text-gray-100 px-3 py-2 text-sm" onclick='markUnpaid(${inv.id})'>${icons.unpaid}</button>`
+                : `<button class="rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-gray-100 px-3 py-2 text-sm" onclick='markPaid(${inv.id})'>${icons.paid}</button>`
+            }
+            <button class="rounded-lg bg-purple-600 hover:bg-purple-700 text-white dark:text-gray-200 px-3 py-2 text-sm" onclick="duplicateInvoice(${inv.id})">${icons.duplicate}</button>
+            <button class="bg-yellow-500 text-white dark:text-gray-200 px-3 py-2 rounded text-sm" onclick="editInvoice(${inv.id})">${icons.edit}</button>
+            <button class="rounded-lg bg-rose-600 hover:bg-rose-700 text-white dark:text-gray-200 px-3 py-2 text-sm" onclick='deleteInvoice(${inv.id})'>${icons.delete}</button>
+          </div>
+        </div>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
 }
 
-  // ADD ITEM ROWS + TOTAL
-  const itemsContainer = $('invoiceItemsContainer');
-  const addItemBtn = $('addItemBtn');
-  
-  function addItemRow(desc = '', amt = 0) {
-    const div = document.createElement('div');
-    div.className = 'grid sm:grid-cols-3 gap-3 mb-2 item-row';
-    div.innerHTML = `
-      <input type="text" placeholder="Description" class="descInput mt-1 w-full rounded-xl border px-3 py-2" value="${desc}" />
-      <input type="number" placeholder="Amount" class="amountInput mt-1 w-full rounded-xl border px-3 py-2" value="${amt}" step="0.01" />
-      <button type="button" class="removeItemBtn bg-red-600 text-white px-3 py-1 rounded-xl">Remove</button>
-    `;
-    itemsContainer.appendChild(div);
-  
-    div.querySelector('.removeItemBtn').addEventListener('click', () => {
-      div.remove();
-      updateTotal();
-    });
-  
-    div.querySelector('.amountInput').addEventListener('input', updateTotal);
-  }
-  
-  function updateTotal() {
-    let total = 0;
-    document.querySelectorAll('.amountInput').forEach(inp => {
-      total += parseFloat(inp.value) || 0;
-    });
-    $('amount').value = total.toFixed(2);
-  }
-  
-  addItemRow();
-  addItemBtn.addEventListener('click', e => { e.preventDefault(); addItemRow(); });
+// ADD ITEM ROWS + TOTAL
+const itemsContainer = $('invoiceItemsContainer');
+const addItemBtn = $('addItemBtn');
+
+function t(key) {
+  const currentLang = localStorage.getItem("lang") || "som";
+  return translations[currentLang]?.[key] || key;
+}
+
+function addItemRow(desc = '', amt = 0) {
+  const div = document.createElement('div');
+  div.className = 'grid sm:grid-cols-3 gap-3 mb-2 item-row';
+  div.innerHTML = `
+    <input type="text" placeholder="${t('description')}" class="descInput mt-1 w-full rounded-xl border px-3 py-2" value="${desc}" />
+    <input type="number" placeholder="${t('amount')}" class="amountInput mt-1 w-full rounded-xl border px-3 py-2" value="${amt}" step="0.01" />
+    <button type="button" class="removeItemBtn bg-red-600 text-white px-3 py-1 rounded-xl">${t('removeItem')}</button>
+  `;
+  itemsContainer.appendChild(div);
+
+  div.querySelector('.removeItemBtn').addEventListener('click', () => {
+    div.remove();
+    updateTotal();
+  });
+
+  div.querySelector('.amountInput').addEventListener('input', updateTotal);
+}
+
+// Update total
+function updateTotal() {
+  let total = 0;
+  document.querySelectorAll('.amountInput').forEach(inp => {
+    total += parseFloat(inp.value) || 0;
+  });
+  $('amount').value = total.toFixed(2);
+}
+
+// Add initial row
+addItemRow();
+
+// Add new item row button
+addItemBtn.addEventListener('click', e => { 
+  e.preventDefault(); 
+  addItemRow(); 
+});
+
+// Update Add Item button text dynamically
+addItemBtn.innerText = t("addItem");
   
   // SAVE NEW INVOICE
   $('saveInvoiceBtn').addEventListener('click', ()=> {
@@ -532,8 +944,6 @@ function isSuspended() {
   $('createInvoiceSection').classList.remove('hidden-section');
 }
 
-
-
   // MARK PAID / UNPAID / DELETE
   function markPaid(id) {
   const i = invoices.findIndex(x => x.id === id);
@@ -588,46 +998,106 @@ function markUnpaid(id) {
   addItemRow(); // add one empty row
 }
 
-  
-  // PRINT
-  function printInvoice(inv) {
-    const w = window.open('', '_blank');
-    let itemsHtml = '';
-    if (inv.items && inv.items.length) {
-      inv.items.forEach(item => {
-        itemsHtml += `<tr><td>${item.description}</td><td class="right">$${fmt(item.amount)}</td></tr>`;
-      });
-    } else {
-      itemsHtml = `<tr><td>Goods / Services</td><td class="right">$${fmt(inv.amount)}</td></tr>`;
-    }
-  
-    const html = `
-      <div>
-        <h2>${currentUser.supermarketName}</h2>
-        <div>${currentUser.supermarketPhone}</div>
-      </div>
-      <div style="text-align:right">
-        <div><strong>Invoice:</strong> ${inv.invoiceNumber}</div>
-        <div><strong>Date:</strong> ${inv.date}</div>
-      </div>
-      <hr>
-      <div><strong>Bill To:</strong> ${inv.name}<br>${inv.phone}</div>
-      <table>
-        <thead><tr><th>Description</th><th class="right">Amount</th></tr></thead>
-        <tbody>
-          ${itemsHtml}
-          <tr><td>Paid</td><td class="right">-$${fmt(inv.paid)}</td></tr>
-          <tr><td><strong>Balance</strong></td><td class="right"><strong>$${fmt(inv.balance)}</strong></td></tr>
-        </tbody>
-      </table>
-      <p>Status: ${inv.status.toUpperCase()}</p>
-    `;
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    w.onload = () => { setTimeout(() => { w.print(); w.close(); }, 300); };
+    // PRINT
+ // Helper to escape HTML special characters
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+}
+
+// Print invoice by invoice ID (safe for onclick)
+function printInvoiceById(id) {
+  const inv = invoices.find(i => i.id === id);
+  if (!inv) return alert("Invoice not found");
+  printInvoice(inv);
+}
+
+
+
+// Main print function
+function printInvoice(inv) {
+  const w = window.open('', '_blank');
+  let itemsHtml = '';
+
+  if (inv.items && inv.items.length) {
+    inv.items.forEach(item => {
+      itemsHtml += `<tr>
+        <td>${escapeHtml(item.description)}</td>
+        <td style="text-align:right;">$${fmt(item.amount)}</td>
+      </tr>`;
+    });
+  } else {
+    itemsHtml = `<tr>
+      <td>Goods / Services</td>
+      <td style="text-align:right;">$${fmt(inv.amount)}</td>
+    </tr>`;
   }
-  
+
+  const html = `
+
+<head>
+  <title>Invoice ${escapeHtml(inv.invoiceNumber)}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; font-size: 14px; color: #333; }
+    h2 { margin: 0; font-size: 24px; color: #1e40af; }
+    .flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+    .invoice-info div { margin-bottom: 5px; font-size: 16px; }
+    .bill-to { margin-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { border: 1px solid #000; padding: 8px; }
+    th { background: #f3f4f6; font-weight: bold; text-align: left; }
+    td.right { text-align: right; }
+    .status { display: inline-block; padding: 4px 8px; border-radius: 5px; font-weight: bold; font-size: 12px; }
+    .paid { background-color: #d1fae5; color: #065f46; }
+    .unpaid { background-color: #fef3c7; color: #b45309; }
+    hr { border: none; border-top: 2px solid #1e40af; margin: 15px 0; }
+    p { font-size: 16px; margin-top: 10px; }
+  </style>
+</head>
+  <div class="flex">
+    <div>
+      <h2>${escapeHtml(currentUser.supermarketName)}</h2>
+      <div>${escapeHtml(currentUser.supermarketPhone)}</div>
+    </div>
+    <div class="invoice-info">
+      <div><strong>Invoice:</strong> ${escapeHtml(inv.invoiceNumber)}</div>
+      <div><strong>Date:</strong> ${escapeHtml(inv.date)}</div>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="bill-to">
+    <strong>Bill To:</strong> ${escapeHtml(inv.name)}<br>
+    ${escapeHtml(inv.phone)}
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Description</th><th class="right">Amount</th></tr>
+    </thead>
+    <tbody>
+      ${itemsHtml}
+      <tr><td>Paid</td><td class="right">-$${fmt(inv.paid)}</td></tr>
+      <tr><td><strong>Balance</strong></td><td class="right"><strong>$${fmt(inv.balance)}</strong></td></tr>
+    </tbody>
+  </table>
+
+  <p>Status: <span class="status ${inv.status === 'paid' ? 'paid' : 'unpaid'}">${inv.status.toUpperCase()}</span></p>
+
+  `;
+
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.onload = () => setTimeout(() => { w.print(); w.close(); }, 300);
+}
+
+
   // PHONE & MESSAGING
   function normalizePhone(phone) {
     phone = phone.trim();
@@ -665,29 +1135,203 @@ function markUnpaid(id) {
     window.open(`https://wa.me/${phone.replace('+','')}?text=${encodeURIComponent(message)}`, "_blank");
   }
   
-  const logoutBtn = $('logoutBtn');
 
-logoutBtn.addEventListener('click', () => {
-  if(confirm("Are you sure you want to logout?")) {
-    localStorage.removeItem('currentUser'); // remove logged-in user
-    window.location.href = 'login.html';    // redirect to login page
+// Export invoices as PDF
+$('exportBtn').addEventListener('click', () => {
+  const { jsPDF } = window.jspdf;
+  const exportData = invoices.filter(inv => inv.supermarketName === currentUser.supermarketName);
+
+  if (!exportData.length) {
+    alert("No invoices to export!");
+    return;
+  }
+
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.text(`Invoices for ${currentUser.supermarketName}`, 14, 20);
+
+  let y = 30; // starting Y position
+  const pageWidth = 190; // A4 width minus margin
+
+  // Column widths
+  const colWidths = {
+    no: 10,
+    date: 25,
+    amount: 25,
+    paid: 25,
+    balance: 25,
+  };
+
+  // Remaining width is for customer and phone
+  const remaining = pageWidth - colWidths.no - colWidths.date - colWidths.amount - colWidths.paid - colWidths.balance - 10;
+  colWidths.customer = remaining * 0.6;
+  colWidths.phone = remaining * 0.4;
+
+  const colPos = {
+    no: 14,
+    date: 14 + colWidths.no,
+    customer: 14 + colWidths.no + colWidths.date,
+    phone: 14 + colWidths.no + colWidths.date + colWidths.customer,
+    amount: 14 + colWidths.no + colWidths.date + colWidths.customer + colWidths.phone,
+    paid: 14 + colWidths.no + colWidths.date + colWidths.customer + colWidths.phone + colWidths.amount,
+    balance: 14 + colWidths.no + colWidths.date + colWidths.customer + colWidths.phone + colWidths.amount + colWidths.paid
+  };
+
+  // Table Header
+  function drawHeader(yPos) {
+    doc.setFillColor(220, 220, 220);
+    doc.rect(14, yPos, pageWidth, 8, 'F');
+    doc.setTextColor(0);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("No", colPos.no, yPos + 6);
+    doc.text("Date", colPos.date, yPos + 6);
+    doc.text("Customer", colPos.customer, yPos + 6);
+    doc.text("Phone", colPos.phone, yPos + 6);
+    doc.text("Amount ($)", colPos.amount + colWidths.amount - 2, yPos + 6, { align: 'right' });
+    doc.text("Paid ($)", colPos.paid + colWidths.paid - 2, yPos + 6, { align: 'right' });
+    doc.text("Balance ($)", colPos.balance + colWidths.balance - 2, yPos + 6, { align: 'right' });
+  }
+
+  drawHeader(y);
+  y += 8;
+
+  let no = 1;
+  exportData.forEach(inv => {
+    if (y > 280) { // page break
+      doc.addPage();
+      y = 20;
+      drawHeader(y);
+      y += 8;
+    }
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${no}`, colPos.no, y + 6); // No column in bold
+    doc.setFont("helvetica", "normal");
+    doc.text(`${inv.date}`, colPos.date, y + 6);
+
+    // Wrap customer and phone
+    const customerText = doc.splitTextToSize(inv.name, colWidths.customer);
+    const phoneText = doc.splitTextToSize(inv.phone, colWidths.phone);
+    doc.text(customerText, colPos.customer, y + 6);
+    doc.text(phoneText, colPos.phone, y + 6);
+
+    // Amounts right-aligned
+    doc.text(`${inv.amount.toFixed(2)}`, colPos.amount + colWidths.amount - 2, y + 6, { align: 'right' });
+    doc.text(`${inv.paid.toFixed(2)}`, colPos.paid + colWidths.paid - 2, y + 6, { align: 'right' });
+    doc.text(`${inv.balance.toFixed(2)}`, colPos.balance + colWidths.balance - 2, y + 6, { align: 'right' });
+
+    // Adjust y based on tallest wrapped column
+    const maxLines = Math.max(customerText.length, phoneText.length);
+    y += 8 * maxLines;
+    no++;
+  });
+
+  doc.save(`invoices_${currentUser.supermarketName}.pdf`);
+});
+
+//clear paid
+$('clearPaidBtn').addEventListener('click', () => {
+  if(confirm("Delete all paid invoices?")) {
+    invoices = invoices.filter(inv => !(inv.supermarketName === currentUser.supermarketName && inv.status === 'paid'));
+    localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
+    renderInvoices();
+    alert("All paid invoices deleted!");
   }
 });
 
+//duplicate invoice
+function duplicateInvoice(id) {
+  const inv = invoices.find(x => x.id === id);
+  if(!inv) return;
 
-function openNotes() {
-  // mark notes as viewed before redirect
-  localStorage.setItem("lastViewedNotes", Date.now());
-  // redirect
-  window.location.href = 'notes.html';
+  const newInv = { ...inv, id: Date.now(), invoiceNumber: genInvoiceNumber(), date: todayISO() };
+  invoices.push(newInv);
+  localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
+  renderInvoices();
+  alert("Invoice duplicated!");
 }
+
+// Bulk WhatsApp/sms reminders
+document.getElementById('sendAllReminders').addEventListener('click', () => {
+  const unpaidInvoices = invoices.filter(
+    inv => inv.supermarketName === currentUser.supermarketName && inv.status === 'unpaid'
+  );
+
+  if (unpaidInvoices.length === 0) {
+    alert('No unpaid invoices to send.');
+    return;
+  }
+
+  const method = document.getElementById('reminderMethod').value;
+
+  // Group invoices by customer phone
+  const invoicesByCustomer = {};
+  unpaidInvoices.forEach(inv => {
+    const phone = normalizePhone(inv.phone);
+    if (!invoicesByCustomer[phone]) invoicesByCustomer[phone] = [];
+    invoicesByCustomer[phone].push(inv);
+  });
+
+  let index = 0;
+  for (const [phone, invs] of Object.entries(invoicesByCustomer)) {
+    const customerName = invs[0].name || "Customer";
+    const totalBalance = invs.reduce((sum, i) => sum + (i.balance || 0), 0);
+
+    // Build a professional invoice list with emojis
+    const invoiceList = invs
+      .map(i => `🧾 Invoice #${i.invoiceNumber || 'N/A'}: $${fmt(i.balance)}`)
+      .join('\n');
+    
+
+    const message = `Xasuusin: ${customerName}\nWaxaa laguugu leeyahay lacagaha soo socda:\n${invoiceList}\nTotal: $${fmt(totalBalance)}\nFadlan iska bixi Dukaanka: ${currentUser.supermarketName}, Numberka ${currentUser.supermarketPhone}`;
+
+    // Create URL
+    const url = method === 'wa'
+      ? `https://wa.me/${phone.replace('+','')}?text=${encodeURIComponent(message)}`
+      : `sms:${phone}?body=${encodeURIComponent(message)}`;
+
+    // Open URL in a new tab/window
+    const win = window.open(url, "_blank");
+
+    // Auto-close after a few seconds
+    setTimeout(() => {
+      if (win) win.close();
+    }, 3000 + index * 500);
+
+    index++;
+  }
+
+  alert(`Prepared ${Object.keys(invoicesByCustomer).length} ${method === 'wa' ? 'WhatsApp' : 'SMS'} messages for unpaid invoices.`);
+});
+
+// Somali names for days
+const daysSomali = ["Axad", "Isniin", "Talaado", "Arbaco", "Khamiis", "Jimco", "Sabti"];
+
+// Function to get day name in Somali or English
+function getDayName(date, lang = "som") {
+  const dayIndex = date.getDay(); // 0 = Sunday, 1 = Monday, ...
+  if(lang === "som") return daysSomali[dayIndex];
+  return date.toLocaleDateString("en-US", { weekday: "long" });
+}
+
 
 function updateClock() {
   const timeEl = document.getElementById("currentTime");
   const now = new Date();
+  const lang = localStorage.getItem("lang") || "som";
 
+  // Somali day names
+  const daysSomali = ["Axad", "Isniin", "Talaado", "Arbaco", "Khamiis", "Jimco", "Sabti"];
+  
+  let weekday = now.toLocaleString('en-US', { weekday: 'long' }); // Default English
+  if (lang === "som") {
+    weekday = daysSomali[now.getDay()]; // Replace with Somali
+  }
+
+  // Format time and date
   const options = { 
-    weekday: 'long', // full name of the day
     year: 'numeric', 
     month: 'numeric', 
     day: 'numeric', 
@@ -696,8 +1340,10 @@ function updateClock() {
     second: '2-digit',
     hour12: true
   };
+  const dateTime = now.toLocaleString('en-US', options);
 
-  timeEl.textContent = now.toLocaleString('en-US', options); 
+  // Display with day name
+  timeEl.textContent = `${weekday}, ${dateTime}`;
 }
 
 // Update clock immediately and every second
@@ -705,52 +1351,13 @@ updateClock();
 setInterval(updateClock, 1000);
 
 
-// Run after page loads
-document.addEventListener("DOMContentLoaded", () => {
-  const counterEl = document.getElementById("notesCounter");
-  const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-  if(!currentUser) return;
-
-  const LS_MESSAGES = 'notesMessages';
-
-  function updateNotesCounter() {
-    const messages = JSON.parse(localStorage.getItem(LS_MESSAGES)) || [];
-    const lastViewed = parseInt(localStorage.getItem("lastViewedNotes") || 0);
-    let unreadCount = 0;
-
-    messages.forEach(msg => {
-      const visible = msg.recipients.includes(currentUser.username) || msg.recipients.includes("all");
-      if(!visible) return;
-      if(msg.sender !== currentUser.username && msg.timestamp > lastViewed) unreadCount++;
-    });
-
-    if(unreadCount > 0){
-      counterEl.textContent = unreadCount;
-      counterEl.classList.remove("hidden");
-    } else {
-      counterEl.classList.add("hidden");
-    }
-  }
-
-  // Update on load
-  updateNotesCounter();
-
-  // Optional: auto-update every 5 seconds
-  setInterval(updateNotesCounter, 5000);
-});
-
-
-
-// FILTER & SEARCH
+// Live search and status filter
 $('filterStatus').addEventListener('change', renderInvoices);
 $('searchName').addEventListener('input', renderInvoices);
+
 
 load();
 
   </script>
 </body>
 </html>
-
-
-
-
