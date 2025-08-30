@@ -1586,29 +1586,26 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const notices = JSON.parse(localStorage.getItem("notices")) || [];
 
-  // Check if welcome notice already exists for this supermarket
-  const welcomeNoticeExists = notices.some(
-    n => n.message.includes(currentUser.supermarketName) && n.isWelcome
+  let welcomeNotice = notices.find(
+    n => n.isWelcome && n.message.includes(currentUser.supermarketName)
   );
 
-  if (!welcomeNoticeExists) {
-    const welcomeMessage = `Welcome to the Invoice App Maker. ${currentUser.supermarketName}`;
-    const notice = {
-      message: welcomeMessage,
-      by: "Administrator", // <-- same key as renderNotices
-      date: new Date().toLocaleString(),
-      reactions: 0,
-      isWelcome: true
-    };
-    notices.push(notice);
+  if (!welcomeNotice) {
+    // Create new welcome notice
+    saveNotice(`Welcome to the Invoice App Maker. ${currentUser.supermarketName}`, true);
+  } else {
+    // Update date to current login
+    welcomeNotice.date = new Date().toLocaleString();
     localStorage.setItem("notices", JSON.stringify(notices));
   }
+
+  renderNotices();
 });
 
 saveNotice("We add Send all Remainder feature, let's check")
 
 //delete notices
-//localStorage.removeItem("notices");
+localStorage.removeItem("notices");
 //console.log("✅ All notices deleted from localStorage");
 
 
@@ -1616,5 +1613,6 @@ saveNotice("We add Send all Remainder feature, let's check")
   </script>
 </body>
 </html>
+
 
 
