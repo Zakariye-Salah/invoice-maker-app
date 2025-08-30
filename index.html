@@ -101,10 +101,11 @@
 
     <header class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
       <!-- Title -->
-      <h1 class="text-2xl font-bold flex items-center gap-2 text-blue-700">
+  
+      <h1 id="mainTitle" class="text-2xl font-bold flex items-center gap-2 text-blue-700">
         <span>🧾</span> Invoice Maker
       </h1>
-    
+      
       <!-- Actions -->
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
         <!-- Language -->
@@ -355,7 +356,7 @@ const translations = {
     filterPaid: "Bixiyay",
     filterUnpaid: "Bixinin",
     emptyState: "Ma jiraan invoices la helay",
-    createInvoice: "Samee Biil",
+    createInvoice: "Samee Biil cusub",
     customerName: "Magaca Macmiilka",
     customerPhone: "Telefoonka Macmiilka",
     invoiceDate: "Taariikhda Invoice",
@@ -374,21 +375,27 @@ const translations = {
     description: "Sheyga lagatay",
     balance: "Hadhaaga",
     actions: "Hawlaha",
-    exportInvoices: "Degso Biilasha",
+    exportInvoices: "Degso Invoices",
     login: "Gali",
     editUser: "Beddel Isticmaalaha",
     clearPaid: "Tirtir bixiyaasha",
     sendAllReminders: "Dir Dhammaan Xasuusinta",
     invoicesTitle: "Biilal",
-    storeLabel: "Dukaan: {name}"
+    storeLabel: "Dukaan: {name}",
+    removeItem: 'Tuur Sheyga',
+    saveInvoice: 'Keydi Biilka',
+    invoiceMaker: "Sameeyaha Biilka",
   },
   eng: {
+    invoiceMaker: "Invoice Maker",
+    removeItem: 'Remove',
+    saveInvoice: 'Save Invoice',
     searchPlaceholder: "Search Customer or Invoice",
     filterAll: "All",
     filterPaid: "Paid",
     filterUnpaid: "Unpaid",
     emptyState: "No invoices found",
-    createInvoice: "Create Invoice",
+    createInvoice: "Create New Invoice",
     customerName: "Customer Name",
     customerPhone: "Customer Phone",
     invoiceDate: "Invoice Date",
@@ -447,6 +454,11 @@ function updateTableHeaders() {
 }
 
 function updateButtonsAndTitles() {
+  // Update main title
+  const mainTitle = document.getElementById("mainTitle");
+  if (mainTitle) mainTitle.innerHTML = `<span>🧾</span> ${t("invoiceMaker")}`;
+
+  // Other buttons and labels
   const createBtn = document.getElementById("createInvoiceBtn");
   if (createBtn) createBtn.innerText = t("createInvoice");
 
@@ -464,6 +476,20 @@ function updateButtonsAndTitles() {
 
   const invoicesTitle = document.getElementById("invoicesTitle");
   if (invoicesTitle) invoicesTitle.innerText = t("invoicesTitle");
+
+  const saveInvoiceBtn = document.getElementById("saveInvoiceBtn");
+  if (saveInvoiceBtn) saveInvoiceBtn.innerText = t("saveInvoice");
+
+  document.querySelectorAll(".removeItemBtn").forEach(btn => {
+    btn.innerText = t("removeItem");
+  });
+
+  document.querySelectorAll(".descInput").forEach(inp => {
+    inp.placeholder = t("description");
+  });
+  document.querySelectorAll(".amountInput").forEach(inp => {
+    inp.placeholder = t("amount");
+  });
 }
 
 // -------------------- OTHER TEXTS -------------------- //
@@ -1361,4 +1387,3 @@ load();
   </script>
 </body>
 </html>
-
