@@ -26,32 +26,14 @@
     box-sizing: border-box;
     text-align: left;
   }
-
-  thead {
-    display: none;        /* Hide header on small screens */
-  }
-
-  tr {
-    margin-bottom: 12px;
-    border-bottom: 1px solid #ddd;
-  }
-
-  td::before {
-    content: attr(data-label);
-    font-weight: bold;
-    display: block;
-    margin-bottom: 4px;
-  }
-
-  .row {
-    flex-direction: column;
-  }
-
-  .right {
-    text-align: left;
-    margin-top: 8px;
-  }
+  .notice {
+  background-color: #f0f4f8;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
+}
+
 @media (max-width: 640px) {
   .row {
     flex-direction: column;
@@ -125,7 +107,8 @@
     
         <!-- Store Label -->
         <span id="storeDisplay" class="font-semibold text-gray-700 px-2 py-1 bg-gray-100 rounded shadow inline-block"></span>
-
+ 
+               
       </div>
     </header>
     
@@ -168,9 +151,21 @@
       <!-- Create Invoice Button -->
       <button id="createInvoiceBtn" 
               class="rounded-xl bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 shadow transition-all duration-200 flex items-center gap-2 no-print">
-        ➕ Create Invoice
+        Create Invoice
       </button>
     
+          <!-- Notice Button -->
+<button id="noticeBtn" class="px-4 py-2 bg-blue-600 text-white rounded">Notice</button>
+
+<!-- Modal -->
+<div id="noticeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+  <div class="bg-white p-6 rounded-lg w-96 max-h-[80vh] overflow-y-auto">
+    <h2 class="text-xl font-bold mb-4">Notices</h2>
+    <div id="noticeList" class="space-y-3"></div>
+    <button id="closeNoticeModal" class="mt-4 px-4 py-2 bg-red-500 text-white rounded">Close</button>
+  </div>
+</div>
+
       <!-- Current Time Display -->
       <span id="currentTime" class="text-sm text-red-500 font-semibold">
         <!-- JS will update time here -->
@@ -565,14 +560,12 @@ window.addEventListener("DOMContentLoaded", () => {
 
 
 //////////////////
-  const LS_CURRENT_USER = 'currentUser';
-  const LS_INVOICES = 'invoices_v1';
+
   
   window.LS_KEYS = { SETTINGS: 'invoice_settings_v1', INVOICES: 'invoices_v1' };
 
   
 
-  let invoices = JSON.parse(localStorage.getItem(LS_INVOICES)) || [];
   
   
   const $ = id => document.getElementById(id);
@@ -600,28 +593,39 @@ createInvoiceSection.classList.toggle("hidden-section");
     invoices = JSON.parse(localStorage.getItem(LS_INVOICES) || '[]');
     $('invoiceDate').value = todayISO();
     renderInvoices();
+  }// -------------------- LOCAL STORAGE KEYS --------------------
+const LS_CURRENT_USER = "currentUser";
+const LS_INVOICES = "invoices";
+
+// -------------------- GLOBALS --------------------
+let currentUser = JSON.parse(localStorage.getItem(LS_CURRENT_USER)) || null;
+let invoices = JSON.parse(localStorage.getItem(LS_INVOICES)) || [];
+
+// -------------------- HELPER --------------------
+
+function requireLogin() {
+  if (!currentUser) {
+    $("loginModal").classList.remove('hidden');
+    $("loginModal").classList.add('flex');
+    return false;
   }
-  
-  let currentUser = JSON.parse(localStorage.getItem(LS_CURRENT_USER)) || null;
+  return true;
+}
 
-const loginBtn = $("loginbtn");
-const loginModal = $("loginModal");
-const modalTitle = $("modalTitle");
-
-// Open modal
-loginBtn.addEventListener("click", () => { 
-  loginModal.classList.remove('hidden'); // show modal
-  loginModal.classList.add('flex');      // apply flex
+// -------------------- LOGIN MODAL --------------------
+$("loginbtn").addEventListener("click", () => { 
+  $("loginModal").classList.remove('hidden');
+  $("loginModal").classList.add('flex');
 
   if(currentUser){
-    modalTitle.textContent = "Edit Supermarket Details";
-    $("supermarketName").value = currentUser.supermarketName || "";
-    $("supermarketAddress").value = currentUser.supermarketAddress || "";
+    $("modalTitle").textContent = "Edit Supermarket Details";
+    $("supermarketName").value = currentUser.supermarketName;
+    $("supermarketAddress").value = currentUser.supermarketAddress;
     $("supermarketGmail").value = currentUser.supermarketGmail || "";
-    $("supermarketPhone").value = currentUser.supermarketPhone || "";
+    $("supermarketPhone").value = currentUser.supermarketPhone;
     $("countryCode").value = currentUser.countryCode || "+252";
   } else {
-    modalTitle.textContent = "Supermarket Login";
+    $("modalTitle").textContent = "Supermarket Login";
     $("supermarketName").value = "";
     $("supermarketAddress").value = "";
     $("supermarketGmail").value = "";
@@ -630,14 +634,11 @@ loginBtn.addEventListener("click", () => {
   }
 });
 
-
-// Cancel
 $("cancelLogin").addEventListener("click", () => {
-  loginModal.classList.add('hidden');    // hide modal
-loginModal.classList.remove('flex');   // remove flex
+  $("loginModal").classList.add('hidden');
+  $("loginModal").classList.remove('flex');
 });
 
-// Save supermarket info
 $("saveLogin").addEventListener("click", () => {
   const supermarketName = $("supermarketName").value.trim();
   const supermarketAddress = $("supermarketAddress").value.trim();
@@ -645,8 +646,9 @@ $("saveLogin").addEventListener("click", () => {
   const supermarketPhone = $("supermarketPhone").value.trim();
   const countryCode = $("countryCode").value.trim() || "+252";
 
-  if(!supermarketName){
-    alert("Supermarket name is required!");
+  // Required fields validation
+  if(!supermarketName || !supermarketAddress || !supermarketPhone){
+    alert("❌ Name, Phone, and Address are required!");
     return;
   }
 
@@ -654,33 +656,61 @@ $("saveLogin").addEventListener("click", () => {
   localStorage.setItem(LS_CURRENT_USER, JSON.stringify(currentUser));
 
   $("storeDisplay").textContent = `Store: ${currentUser.supermarketName}`;
-  loginBtn.textContent = "Edit User";
-  loginModal.classList.add('hidden');    // hide modal
-  loginModal.classList.remove('flex');   // remove flex
+  $("loginbtn").textContent = "Edit User";
 
+  $("loginModal").classList.add('hidden');
+  $("loginModal").classList.remove('flex');
 
-  load();
+  load(); // load invoices or other data
 });
 
-// Auto load supermarket info if logged in
+// -------------------- AUTO LOAD --------------------
 window.addEventListener("DOMContentLoaded", () => {
   if(currentUser){
     $("storeDisplay").textContent = `Store: ${currentUser.supermarketName}`;
-    loginBtn.textContent = "Edit User";
+    $("loginbtn").textContent = "Edit User";
     load();
+  } else {
+    // If no user, force login on page load
+    $("loginModal").classList.remove('hidden');
+    $("loginModal").classList.add('flex');
   }
 });
 
+// -------------------- SAVE INVOICE --------------------
+function saveInvoice(inv) {
+  if(!requireLogin()) return; // stop if no login
 
-  // SAVE INVOICE for current supermarket
-  function saveInvoice(inv) {
-    inv.supermarketName = currentUser.supermarketName;
-    invoices.push(inv);
-    localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
-    renderInvoices();
+  inv.supermarketName = currentUser.supermarketName;
+  invoices.push(inv);
+  localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
+  renderInvoices();
+}
 
-  }
+// -------------------- PROTECT INPUTS --------------------
+const allInputs = document.querySelectorAll('input, textarea, select');
+allInputs.forEach(input => {
+  input.addEventListener('focus', () => {
+    requireLogin(); // force login when focusing input
+  });
+});
+
+// -------------------- EXAMPLE REMINDERS --------------------
+function sendReminder(inv) {
+  if(!requireLogin()) return;
+
+  const phone = normalizePhone(inv.phone);
+  const method = $("reminderMethod").value;
+  const message = `Reminder: ${inv.name}, balance: $${inv.balance}`;
+  const url = method === "wa" 
+    ? `https://wa.me/${phone.replace("+","")}?text=${encodeURIComponent(message)}`
+    : `sms:${phone}?body=${encodeURIComponent(message)}`;
   
+  window.open(url, "_blank");
+}
+
+// Add requireLogin() to other functions like printing, deleting, etc.
+
   // VALIDATE INVOICE
   function validateInvoiceForm() {
     const name = $('customerName').value.trim();
@@ -749,7 +779,7 @@ function renderInvoices() {
     amount: lang === 'som' ? 'Qiime' : 'Amount',
     paidLabel: lang === 'som' ? 'bixiyay' : 'Paid',
     balanceLabel: lang === 'som' ? 'Hadhaaga' : 'Balance',
-    paidBtn: lang === 'som' ? 'La Bixiyay' : 'Paid',
+    paidBtn: lang === 'som' ? 'Bixiyay' : 'Paid',
     unpaidBtn: lang === 'som' ? 'Bixinin' : 'Unpaid'
   };
 
@@ -1426,8 +1456,162 @@ setInterval(updateClock, 1000);
 $('filterStatus').addEventListener('change', renderInvoices);
 $('searchName').addEventListener('input', renderInvoices);
 
+// Function to save notice (only once)
 
-load();
+// Render notices
+function renderNotices() {
+  const noticeList = document.getElementById("noticeList");
+  const notices = JSON.parse(localStorage.getItem("notices")) || [];
+  const reactedNotices = JSON.parse(localStorage.getItem("reactedNotices")) || {};
+
+  noticeList.innerHTML = "";
+
+  notices.forEach((n, index) => {
+    const div = document.createElement("div");
+    div.className = "border p-3 rounded shadow mb-3";
+    div.innerHTML = `
+      <div class="font-medium">${n.message}</div>
+      <div class="text-sm text-gray-500 mt-1">By: ${n.by} | ${n.date}</div>
+      <div class="mt-2 flex items-center justify-between">
+        <span id="reactionCount-${index}" class="text-gray-600">${n.reactions} supermarkets reacted</span>
+        <button class="reactionBtn px-2 py-1 bg-green-500 text-white rounded">👍 React</button>
+      </div>
+    `;
+    noticeList.appendChild(div);
+
+    const btn = div.querySelector(".reactionBtn");
+
+    // Disable button if user already reacted
+    if (reactedNotices[n.message]) {
+      btn.disabled = true;
+      btn.textContent = "Reacted";
+      btn.classList.remove("bg-green-500");
+      btn.classList.add("bg-gray-400");
+    }
+
+    // Reaction button click
+    btn.addEventListener("click", () => {
+      if (!reactedNotices[n.message]) {
+        animateReaction(index, 1);
+        reactedNotices[n.message] = true;
+        localStorage.setItem("reactedNotices", JSON.stringify(reactedNotices));
+
+        btn.disabled = true;
+        btn.textContent = "Reacted";
+        btn.classList.remove("bg-green-500");
+        btn.classList.add("bg-gray-400");
+      }
+    });
+  });
+}
+
+// Animate reaction count increment
+function animateReaction(index, increment = 1) {
+  const reactionSpan = document.getElementById(`reactionCount-${index}`);
+  const notices = JSON.parse(localStorage.getItem("notices")) || [];
+  let current = notices[index].reactions;
+  const target = current + increment;
+
+  const step = () => {
+    if (current < target) {
+      current++;
+      reactionSpan.textContent = `${current} supermarkets reacted`;
+      notices[index].reactions = current;
+      localStorage.setItem("notices", JSON.stringify(notices));
+      requestAnimationFrame(step);
+    }
+  };
+
+  step();
+}
+
+// Initial render
+renderNotices();
+
+// Add fake reactions every minute (smooth animation)
+setInterval(() => {
+  const notices = JSON.parse(localStorage.getItem("notices")) || [];
+  if (notices.length === 0) return;
+
+  // Pick a random notice and animate +1 reaction
+  const idx = Math.floor(Math.random() * notices.length);
+  animateReaction(idx, 1);
+
+}, 60000); // 60000ms = 1 minute
+
+
+// Modal functionality
+const noticeBtn = document.getElementById("noticeBtn");
+const noticeModal = document.getElementById("noticeModal");
+const closeNoticeModal = document.getElementById("closeNoticeModal");
+
+noticeBtn.addEventListener("click", () => {
+  renderNotices();
+  noticeModal.classList.remove("hidden");
+  noticeModal.classList.add("flex");
+});
+
+closeNoticeModal.addEventListener("click", () => {
+  noticeModal.classList.add("hidden");
+  noticeModal.classList.remove("flex");
+});
+
+// Example notice (saved once)
+//  saveNotice("Welcome to the Invoice App Maker. ");
+
+
+// Function to save notice (only once)
+function saveNotice(message) {
+  if (!message.trim()) return;
+
+  const notices = JSON.parse(localStorage.getItem("notices")) || [];
+  const newNotice = {
+    message: message,
+    by: "Administrator", // <-- ensure this key matches renderNotices()
+    date: new Date().toLocaleString(),
+    reactions: 0
+  };
+
+  // Add only once if you want to prevent duplicates
+  if (!notices.some(n => n.message === message)) {
+    notices.push(newNotice);
+    localStorage.setItem("notices", JSON.stringify(notices));
+    renderNotices();
+  }
+}
+
+// Run once on page load to add the welcome notice for the current supermarket
+window.addEventListener("DOMContentLoaded", () => {
+  if (!currentUser) return;
+
+  const notices = JSON.parse(localStorage.getItem("notices")) || [];
+
+  // Check if welcome notice already exists for this supermarket
+  const welcomeNoticeExists = notices.some(
+    n => n.message.includes(currentUser.supermarketName) && n.isWelcome
+  );
+
+  if (!welcomeNoticeExists) {
+    const welcomeMessage = `Welcome to the Invoice App Maker. ${currentUser.supermarketName}`;
+    const notice = {
+      message: welcomeMessage,
+      by: "Administrator", // <-- same key as renderNotices
+      date: new Date().toLocaleString(),
+      reactions: 0,
+      isWelcome: true
+    };
+    notices.push(notice);
+    localStorage.setItem("notices", JSON.stringify(notices));
+  }
+});
+
+//saveNotice("thanks")
+
+//delete notices
+//localStorage.removeItem("notices");
+//console.log("✅ All notices deleted from localStorage");
+
+
 
   </script>
 </body>
