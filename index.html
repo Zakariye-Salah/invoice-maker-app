@@ -92,42 +92,81 @@
         <span>🧾</span> Invoice Maker
       </h1>
       
-   <!-- Actions -->
+<!-- Actions -->
 <div class="flex items-center gap-2 sm:gap-3 relative">
-  <!-- Desktop buttons (hidden on small screens) -->
+  
+  <!-- Desktop buttons -->
   <div class="hidden sm:flex flex-wrap items-center gap-2 sm:gap-3">
-    <button id="langBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded shadow transition-all duration-200">
-      ENG
-    </button>
-    <button id="exportBtn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded shadow transition-all duration-200">
-      Export Invoices
-    </button>
-    <button id="loginbtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow relative transition-all duration-200">
-      Edit User
-    </button>
-    <button id="noticeBtn" class="px-4 py-2 bg-blue-600 text-white rounded z-50 relative">Notice</button>
+    <button id="langBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded shadow transition-all duration-200">ENG</button>
+    <button id="exportBtn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded shadow transition-all duration-200">Export Invoices</button>
+    <button id="loginbtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow transition-all duration-200">Edit User</button>
+    <button id="noticeBtn" class="px-4 py-2 bg-blue-600 text-white rounded">Notice</button>
+    <button id="helpBtn" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Help</button>
+      <!-- Store Label -->
+  <span id="storeDisplay" class="font-semibold text-gray-700 px-2 py-1 bg-gray-100 rounded shadow inline-block">
+    My Store
+  </span>
   </div>
+  
+  <!-- Mobile Hamburger -->
+  <div class="sm:hidden relative">
+    <button id="mobileMenuBtn" class="bg-gray-700 text-white px-3 py-2 rounded shadow relative z-20">
+      <span id="hamburger" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
+      <span id="hamburger2" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
+      <span id="hamburger3" class="block w-6 h-0.5 bg-white transition-all duration-300"></span>
+    </button>
+   
 
-<!-- Mobile menu button -->
-<div class="sm:hidden relative">
-  <button id="mobileMenuBtn" class="bg-gray-700 text-white px-3 py-2 rounded shadow relative z-20">
-    <span id="hamburger" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
-    <span id="hamburger2" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
-    <span id="hamburger3" class="block w-6 h-0.5 bg-white transition-all duration-300"></span>
-  </button>
+      <!-- Store Label -->
+  <span id="storeDisplay" class="font-semibold text-gray-700 px-2 py-1 bg-gray-100 rounded shadow inline-block">
+    My Store
+  </span>
+  </div>
 </div>
 
-<!-- Mobile menu (fixed, top-right, floating popup) -->
-<div id="mobileMenu" class="fixed top-16 right-4 w-56 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-xl rounded-lg overflow-hidden flex flex-col opacity-0 scale-95 -translate-y-6 pointer-events-none z-50 transition-all duration-500">
+<!-- Mobile menu (floating popup) -->
+<div id="mobileMenu" class="fixed left-4 w-56 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-xl rounded-lg overflow-hidden flex flex-col opacity-0 scale-95 pointer-events-none z-50 transition-all duration-500">
   <button id="langBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">ENG</button>
   <button id="exportBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Export Invoices</button>
   <button id="loginbtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Edit User</button>
   <button id="noticeBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Notice</button>
-</div>
+  <button id="helpBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Help</button>
 
 </div>
+
+<div id="helpModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg w-96 max-h-[80vh] overflow-y-auto shadow-xl">
+    <h2 class="text-xl font-bold mb-4 text-blue-700 dark:text-blue-400">Help / Caawimo</h2>
+
+    <ul class="list-disc list-inside text-gray-700 dark:text-gray-200 space-y-2">
+      <li><span class="font-semibold text-indigo-600">WhatsApp Button:</span> U dir invoice macaamiisha adigoo isticmaalaya WhatsApp. Guji si toos ah loogu furo app-ka WhatsApp.</li>
+      <li><span class="font-semibold text-green-600">SMS Button:</span> U dir invoice SMS ahaan macaamiisha. Hubi inaad telefoonkaaga leeyahay signal ama internet.</li>
+      <li><span class="font-semibold text-indigo-700">Phone Button:</span> Wac macaamiisha adigoo gujinaya button-ka.</li>
+      <li><span class="font-semibold text-gray-700">Print Button:</span> Daabac invoice-ka. Waxay fureysaa daaqad cusub oo diyaar u ah print-ka.</li>
+      <li><span class="font-semibold text-green-700">Paid Button:</span> Calaamadee invoice-ka inuu bixiyay. Waxaad arki doontaa midabka invoice-ka oo isbedelaya (Paid = gray, Unpaid = red).</li>
+      <li><span class="font-semibold text-red-600">Unpaid Button:</span> Calaamadee invoice-ka inuu bixinin. Waxay ka dhigeysaa invoice-ka mid casaan ah si aad u aragto kuwa aan bixin.</li>
+      <li><span class="font-semibold text-purple-600">Duplicate Button:</span> Nuqul ka samee invoice jira si aad u isticmaasho markale ama wax ka beddesho.</li>
+      <li><span class="font-semibold text-yellow-500">Edit Button:</span> Wax ka beddel invoice-ka, sida magaca macaamiisha, taariikhda, ama qiimaha.</li>
+      <li><span class="font-semibold text-rose-600">Delete Button:</span> Tirtir invoice-ka. Fiiro gaar ah: waxba laguma soo celin karo marka la tirtiro.</li>
+      <li><span class="font-semibold text-gray-800">Clear Paid Button:</span> Tirtir calaamadaha bixinta ee dhammaan invoices-ka paid. Waxay kaa caawinaysaa inaad dib u bilowdo maamulka lacag bixinta.</li>
+      <li><span class="font-semibold text-blue-700">Send All Reminders:</span> Dir dhammaan xusuusinta lacag bixinta invoices-ka unpaid. Waxay u diri doontaa macaamiisha SMS ama WhatsApp iyadoo ku xiran nidaamkaaga.</li>
+      <li><span class="font-semibold text-gray-900">General Tips:</span>
+        <ul class="list-disc list-inside ml-4 space-y-1">
+          <li>Haddii export-ku shaqayn waayo, hubi internet-kaaga.</li>
+          <li>Haddii login-ka uu fashilmo, dib u cusboonaysii browser-ka.</li>
+          <li>Ha tirtirin localStorage haddii aadan hubin.</li>
+          <li>Haddii invoices-ka mobile-ka uusan muuqan, hubi screen size-ka iyo scrollbar.</li>
+        </ul>
+      </li>
+    </ul>
+
+    <button id="closeHelpModal" class="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-all duration-200">Close</button>
+  </div>
+</div>
+
 
 <!-- Notice Modal -->
+
 <div id="noticeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
   <div class="bg-white dark:bg-gray-800 p-6 rounded-lg w-96 max-h-[80vh] overflow-y-auto">
     <h2 class="text-xl font-bold mb-4">Notices</h2>
@@ -139,10 +178,6 @@
 
 
     
-        <!-- Store Label -->
-        <span id="storeDisplay" class="font-semibold text-gray-700 px-2 py-1 bg-gray-100 rounded shadow inline-block"></span>
- 
-               
       </div>
     </header>
     
@@ -174,7 +209,7 @@
     </label>
 
     <div class="flex justify-end gap-2">
-      <button id="cancelLogin" class="px-4 py-2 rounded-xl bg-gray-400 hover:bg-gray-500 text-white">Cancel</button>
+      <!-- <button id="cancelLogin" class="px-4 py-2 rounded-xl bg-gray-400 hover:bg-gray-500 text-white">Cancel</button> -->
       <button id="saveLogin" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white">Save</button>
     </div>
   </div>
@@ -401,7 +436,7 @@ const translations = {
     clearPaid: "Tirtir bixiyaasha",
     sendAllReminders: "Dir Dhammaan Xasuusinta",
     invoicesTitle: "Biilal",
-    storeLabel: "Dukaan: {name}",
+    storeLabel: "Dukaanka: {name}",
     removeItem: 'Tuur Sheyga',
     saveInvoice: 'Keydi Biilka',
     invoiceMaker: "Sameeyaha Biilka",
@@ -657,10 +692,10 @@ $("loginbtn").addEventListener("click", () => {
   }
 });
 
-$("cancelLogin").addEventListener("click", () => {
-  $("loginModal").classList.add('hidden');
-  $("loginModal").classList.remove('flex');
-});
+// $("cancelLogin").addEventListener("click", () => {
+//   $("loginModal").classList.add('hidden');
+//   $("loginModal").classList.remove('flex');
+// });
 
 // -------------------- AUTO LOAD --------------------
 window.addEventListener("DOMContentLoaded", () => {
@@ -674,26 +709,31 @@ window.addEventListener("DOMContentLoaded", () => {
     $("loginModal").classList.add('flex');
   }
 });
-//humberger section
+
+///humberger
+
 const mobileBtn = document.getElementById('mobileMenuBtn');
 const mobileMenu = document.getElementById('mobileMenu');
 const hamburger = document.getElementById('hamburger');
 const hamburger2 = document.getElementById('hamburger2');
 const hamburger3 = document.getElementById('hamburger3');
 
-
-//
+// Open/close mobile menu
 mobileBtn.addEventListener('click', () => {
   if (mobileMenu.classList.contains('opacity-0')) {
     // Open menu
-    mobileMenu.classList.remove('opacity-0', 'scale-95', '-translate-y-6', 'pointer-events-none');
-    mobileMenu.classList.add('opacity-100', 'scale-100', 'translate-y-0', 'pointer-events-auto');
+    mobileMenu.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+    mobileMenu.classList.add('opacity-100', 'scale-100', 'pointer-events-auto');
 
-    // Subtle bounce animation
+    // Set menu top dynamically 20px below button
+    const rect = mobileBtn.getBoundingClientRect();
+    mobileMenu.style.top = `${rect.bottom + 20}px`; 
+
+    // Spring animation (slide down with subtle bounce)
     mobileMenu.animate([
-      { transform: 'translateY(-24px)', opacity: 0.7 },
+      { transform: 'translateY(-10px)', opacity: 0.7 },
       { transform: 'translateY(0)', opacity: 1 },
-      { transform: 'translateY(-8px)', opacity: 1 },
+      { transform: 'translateY(-5px)', opacity: 1 },
       { transform: 'translateY(0)', opacity: 1 }
     ], {
       duration: 400,
@@ -706,8 +746,8 @@ mobileBtn.addEventListener('click', () => {
     hamburger3.style.transform = 'rotate(-45deg) translate(5px, -5px)';
   } else {
     // Close menu
-    mobileMenu.classList.remove('opacity-100', 'scale-100', 'translate-y-0', 'pointer-events-auto');
-    mobileMenu.classList.add('opacity-0', 'scale-95', '-translate-y-6', 'pointer-events-none');
+    mobileMenu.classList.remove('opacity-100', 'scale-100', 'pointer-events-auto');
+    mobileMenu.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
 
     // Reset hamburger
     hamburger.style.transform = 'rotate(0) translate(0, 0)';
@@ -721,6 +761,31 @@ document.getElementById('langBtnMobile').addEventListener('click', () => documen
 document.getElementById('exportBtnMobile').addEventListener('click', () => document.getElementById('exportBtn').click());
 document.getElementById('loginbtnMobile').addEventListener('click', () => document.getElementById('loginbtn').click());
 document.getElementById('noticeBtnMobile').addEventListener('click', () => document.getElementById('noticeBtn').click());
+
+
+// Desktop Help button
+document.getElementById('helpBtn').addEventListener('click', () => {
+  document.getElementById('helpModal').classList.remove('hidden');
+});
+
+// Mobile Help button
+document.getElementById('helpBtnMobile').addEventListener('click', () => {
+  document.getElementById('helpModal').classList.remove('hidden');
+  // Close mobile menu
+  mobileMenu.classList.remove('opacity-100', 'scale-100', 'translate-y-0', 'pointer-events-auto');
+  mobileMenu.classList.add('opacity-0', 'scale-95', '-translate-y-6', 'pointer-events-none');
+  // Reset hamburger
+  hamburger.style.transform = 'rotate(0) translate(0,0)';
+  hamburger2.style.opacity = '1';
+  hamburger3.style.transform = 'rotate(0) translate(0,0)';
+});
+
+// Close help modal
+document.getElementById('closeHelpModal').addEventListener('click', () => {
+  document.getElementById('helpModal').classList.add('hidden');
+});
+
+
 
 // Notice modal
 const noticeModal = document.getElementById('noticeModal');
@@ -1682,3 +1747,4 @@ if (noticeBtn && noticeModal && closeNoticeModal) {
   </script>
 </body>
 </html>
+
