@@ -79,15 +79,6 @@
 <body class="bg-gray-50 text-gray-900">
   <div class="max-w-5xl mx-auto p-4 sm:p-6">
 
- 
-
-    <header class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
-      <!-- Title -->
-  
-      <h1 id="mainTitle" class="text-2xl font-bold flex items-center gap-2 text-blue-700">
-        <span>🧾</span> Invoice Maker
-      </h1>
-      
     <!-- Actions -->
 <div class="flex items-center gap-2 sm:gap-3 relative">
   <!-- Desktop buttons (hidden on small screens) -->
@@ -106,20 +97,33 @@
 
   <!-- Mobile menu button -->
   <div class="sm:hidden relative">
-    <button id="mobileMenuBtn" class="bg-gray-700 text-white px-3 py-2 rounded shadow">
-      <i class="fa-solid fa-bars"></i>
+    <button id="mobileMenuBtn" class="bg-gray-700 text-white px-3 py-2 rounded shadow relative z-20">
+      <span id="hamburger" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
+      <span id="hamburger2" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
+      <span id="hamburger3" class="block w-6 h-0.5 bg-white transition-all duration-300"></span>
     </button>
 
     <!-- Mobile menu (hidden by default) -->
-    <div id="mobileMenu" class="overflow-hidden max-h-0 transition-all duration-300 absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 shadow-lg rounded-lg flex flex-col">
-      <button id="langBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded">ENG</button>
-      <button id="exportBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded">Export Invoices</button>
-      <button id="loginbtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded">Edit User</button>
-      <button id="noticeBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded">Notice</button>
+    <div id="mobileMenu" class="absolute top-12 left-0 w-52 bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden max-h-0 transition-all duration-300 z-10 flex flex-col">
+      <button id="langBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">ENG</button>
+      <button id="exportBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Export Invoices</button>
+      <button id="loginbtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Edit User</button>
+      <button id="noticeBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Notice</button>
     </div>
   </div>
 </div>
 
+  
+
+ 
+
+    <header class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
+      <!-- Title -->
+  
+      <h1 id="mainTitle" class="text-2xl font-bold flex items-center gap-2 text-blue-700">
+        <span>🧾</span> Invoice Maker
+      </h1>
+      
     
         <!-- Store Label -->
         <span id="storeDisplay" class="font-semibold text-gray-700 px-2 py-1 bg-gray-100 rounded shadow inline-block"></span>
@@ -572,14 +576,29 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const mobileBtn = document.getElementById('mobileMenuBtn');
   const mobileMenu = document.getElementById('mobileMenu');
+  const hamburger = document.getElementById('hamburger');
+  const hamburger2 = document.getElementById('hamburger2');
+  const hamburger3 = document.getElementById('hamburger3');
 
   mobileBtn.addEventListener('click', () => {
     if (mobileMenu.classList.contains('max-h-0')) {
+      // Open menu
       mobileMenu.classList.remove('max-h-0');
-      mobileMenu.classList.add('max-h-96'); // expand
+      mobileMenu.classList.add('max-h-96');
+
+      // Animate hamburger to X
+      hamburger.style.transform = 'rotate(45deg) translate(5px, 5px)';
+      hamburger2.style.opacity = '0';
+      hamburger3.style.transform = 'rotate(-45deg) translate(5px, -5px)';
     } else {
+      // Close menu
       mobileMenu.classList.remove('max-h-96');
-      mobileMenu.classList.add('max-h-0'); // collapse
+      mobileMenu.classList.add('max-h-0');
+
+      // Reset hamburger
+      hamburger.style.transform = 'rotate(0) translate(0, 0)';
+      hamburger2.style.opacity = '1';
+      hamburger3.style.transform = 'rotate(0) translate(0, 0)';
     }
   });
 
@@ -587,9 +606,8 @@ window.addEventListener("DOMContentLoaded", () => {
   document.getElementById('langBtnMobile').addEventListener('click', () => document.getElementById('langBtn').click());
   document.getElementById('exportBtnMobile').addEventListener('click', () => document.getElementById('exportBtn').click());
   document.getElementById('loginbtnMobile').addEventListener('click', () => document.getElementById('loginbtn').click());
-  document.getElementById('noticeBtnMobile').addEventListener('click', () => document.getElementById('noticeBtn').click());  
+  document.getElementById('noticeBtnMobile').addEventListener('click', () => document.getElementById('noticeBtn').click());
 
-  
   
   const $ = id => document.getElementById(id);
   const fmt = n => Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
