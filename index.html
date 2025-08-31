@@ -88,22 +88,38 @@
         <span>🧾</span> Invoice Maker
       </h1>
       
-      <!-- Actions -->
-      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
-        <!-- Language -->
-        <button id="langBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded shadow transition-all duration-200">
-          ENG
-        </button>
-    
-        <!-- Export -->
-        <button id="exportBtn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded shadow transition-all duration-200">
-          Export Invoices
-        </button>
-    
-        <!-- Login/Edit User -->
-        <button id="loginbtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow relative transition-all duration-200">
-          Login
-        </button>
+    <!-- Actions -->
+<div class="flex items-center gap-2 sm:gap-3 relative">
+  <!-- Desktop buttons (hidden on small screens) -->
+  <div class="hidden sm:flex flex-wrap items-center gap-2 sm:gap-3">
+    <button id="langBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded shadow transition-all duration-200">
+      ENG
+    </button>
+    <button id="exportBtn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded shadow transition-all duration-200">
+      Export Invoices
+    </button>
+    <button id="loginbtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow relative transition-all duration-200">
+      Edit User
+    </button>
+    <button id="noticeBtn" class="px-4 py-2 bg-blue-600 text-white rounded">Notice</button>
+  </div>
+
+  <!-- Mobile menu button -->
+  <div class="sm:hidden relative">
+    <button id="mobileMenuBtn" class="bg-gray-700 text-white px-3 py-2 rounded shadow">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+
+    <!-- Mobile menu (hidden by default) -->
+    <div id="mobileMenu" class="overflow-hidden max-h-0 transition-all duration-300 absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 shadow-lg rounded-lg flex flex-col">
+      <button id="langBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded">ENG</button>
+      <button id="exportBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded">Export Invoices</button>
+      <button id="loginbtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded">Edit User</button>
+      <button id="noticeBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded">Notice</button>
+    </div>
+  </div>
+</div>
+
     
         <!-- Store Label -->
         <span id="storeDisplay" class="font-semibold text-gray-700 px-2 py-1 bg-gray-100 rounded shadow inline-block"></span>
@@ -154,17 +170,7 @@
         Create Invoice
       </button>
     
-          <!-- Notice Button -->
-<button id="noticeBtn" class="px-4 py-2 bg-blue-600 text-white rounded">Notice</button>
-
-<!-- Modal -->
-<div id="noticeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white p-6 rounded-lg w-96 max-h-[80vh] overflow-y-auto">
-    <h2 class="text-xl font-bold mb-4">Notices</h2>
-    <div id="noticeList" class="space-y-3"></div>
-    <button id="closeNoticeModal" class="mt-4 px-4 py-2 bg-red-500 text-white rounded">Close</button>
-  </div>
-</div>
+    
 
       <!-- Current Time Display -->
       <span id="currentTime" class="text-sm text-red-500 font-semibold">
@@ -376,7 +382,7 @@ const translations = {
     clearPaid: "Tirtir bixiyaasha",
     sendAllReminders: "Dir Dhammaan Xasuusinta",
     invoicesTitle: "Biilal",
-    storeLabel: "Dukaanka: {name}",
+    storeLabel: "Dukaan: {name}",
     removeItem: 'Tuur Sheyga',
     saveInvoice: 'Keydi Biilka',
     invoiceMaker: "Sameeyaha Biilka",
@@ -564,7 +570,24 @@ window.addEventListener("DOMContentLoaded", () => {
   
   window.LS_KEYS = { SETTINGS: 'invoice_settings_v1', INVOICES: 'invoices_v1' };
 
-  
+  const mobileBtn = document.getElementById('mobileMenuBtn');
+  const mobileMenu = document.getElementById('mobileMenu');
+
+  mobileBtn.addEventListener('click', () => {
+    if (mobileMenu.classList.contains('max-h-0')) {
+      mobileMenu.classList.remove('max-h-0');
+      mobileMenu.classList.add('max-h-96'); // expand
+    } else {
+      mobileMenu.classList.remove('max-h-96');
+      mobileMenu.classList.add('max-h-0'); // collapse
+    }
+  });
+
+  // Forward clicks from mobile menu to original buttons
+  document.getElementById('langBtnMobile').addEventListener('click', () => document.getElementById('langBtn').click());
+  document.getElementById('exportBtnMobile').addEventListener('click', () => document.getElementById('exportBtn').click());
+  document.getElementById('loginbtnMobile').addEventListener('click', () => document.getElementById('loginbtn').click());
+  document.getElementById('noticeBtnMobile').addEventListener('click', () => document.getElementById('noticeBtn').click());  
 
   
   
@@ -639,31 +662,6 @@ $("cancelLogin").addEventListener("click", () => {
   $("loginModal").classList.remove('flex');
 });
 
-$("saveLogin").addEventListener("click", () => {
-  const supermarketName = $("supermarketName").value.trim();
-  const supermarketAddress = $("supermarketAddress").value.trim();
-  const supermarketGmail = $("supermarketGmail").value.trim();
-  const supermarketPhone = $("supermarketPhone").value.trim();
-  const countryCode = $("countryCode").value.trim() || "+252";
-
-  // Required fields validation
-  if(!supermarketName || !supermarketAddress || !supermarketPhone){
-    alert("❌ Name, Phone, and Address are required!");
-    return;
-  }
-
-  currentUser = { supermarketName, supermarketAddress, supermarketGmail, supermarketPhone, countryCode };
-  localStorage.setItem(LS_CURRENT_USER, JSON.stringify(currentUser));
-
-  $("storeDisplay").textContent = `Store: ${currentUser.supermarketName}`;
-  $("loginbtn").textContent = "Edit User";
-
-  $("loginModal").classList.add('hidden');
-  $("loginModal").classList.remove('flex');
-
-  load(); // load invoices or other data
-});
-
 // -------------------- AUTO LOAD --------------------
 window.addEventListener("DOMContentLoaded", () => {
   if(currentUser){
@@ -677,15 +675,6 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// -------------------- SAVE INVOICE --------------------
-function saveInvoice(inv) {
-  if(!requireLogin()) return; // stop if no login
-
-  inv.supermarketName = currentUser.supermarketName;
-  invoices.push(inv);
-  localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
-  renderInvoices();
-}
 
 // -------------------- PROTECT INPUTS --------------------
 const allInputs = document.querySelectorAll('input, textarea, select');
@@ -743,16 +732,20 @@ function renderInvoices() {
   const tbody = $('invoiceRows');
   tbody.innerHTML = '';
 
+  const allInvoices = JSON.parse(localStorage.getItem(LS_INVOICES)) || [];
   const filter = $('filterStatus').value;
   const query = $('searchName').value.trim().toLowerCase();
 
-  if (!Array.isArray(invoices)) return;
+  if (!Array.isArray(allInvoices)) return;
 
-  const list = invoices.filter(inv => {
+  const list = allInvoices.filter(inv => {
     if (!inv || !currentUser) return false;
     if (inv.supermarketName !== currentUser.supermarketName) return false;
     const okStatus = filter === 'all' || (inv.status || '').toLowerCase() === filter;
-    const okSearch = !query || (inv.name || '').toLowerCase().includes(query) || (inv.invoiceNumber || '').toLowerCase().includes(query);
+    const okSearch =
+      !query ||
+      (inv.name || '').toLowerCase().includes(query) ||
+      (inv.invoiceNumber || '').toLowerCase().includes(query);
     return okStatus && okSearch;
   });
 
@@ -763,6 +756,7 @@ function renderInvoices() {
   const icons = {
     whatsapp: `<i class="fa-brands fa-whatsapp"></i>`,
     sms: `<i class="fa-solid fa-comment"></i>`,
+    phone: `<i class="fa-solid fa-phone"></i>`,
     print: `<i class="fa-solid fa-print"></i>`,
     paid: `<i class="fa-solid fa-check"></i>`,
     unpaid: `<i class="fa-solid fa-xmark"></i>`,
@@ -795,10 +789,9 @@ function renderInvoices() {
       ? 'bg-gray-50 dark:bg-gray-700'
       : 'bg-gray-200 dark:bg-gray-600';
 
-      const statusClasses = status === 'paid'
-  ? 'bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-100'
-  : 'bg-red-500 text-white dark:bg-red-700 dark:text-gray-100'; // red only for unpaid
-
+    const statusClasses = status === 'paid'
+      ? 'bg-gray-200 text-white dark:bg-gray-600 dark:text-white'
+      : 'bg-red-500 text-white dark:bg-red-700 dark:text-white';
 
     const statusText = status === 'paid' ? labels.paidBtn : labels.unpaidBtn;
 
@@ -806,65 +799,65 @@ function renderInvoices() {
     tr.className = rowBg;
 
     tr.innerHTML = `
-      <!-- Desktop columns -->
-      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">${index + 1}</td>
-      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">${inv.invoiceNumber || '-'}</td>
-      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">${inv.date || '-'}</td>
-      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">${inv.name || '-'}</td>
-      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">${inv.phone || '-'}</td>
-      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">$${fmt(amount)}</td>
-      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">$${fmt(paid)}</td>
-      <td class="hidden sm:table-cell p-2 text-gray-800 dark:text-gray-200">$${fmt(balance)}</td>
+      <!-- Desktop -->
+      <td class="hidden sm:table-cell p-2 text-white">${index + 1}</td>
+      <td class="hidden sm:table-cell p-2 text-white">${inv.invoiceNumber || '-'}</td>
+      <td class="hidden sm:table-cell p-2 text-white">${inv.date || '-'}</td>
+      <td class="hidden sm:table-cell p-2 text-white">${inv.name || '-'}</td>
+      <td class="hidden sm:table-cell p-2 text-white">${inv.phone || '-'}</td>
+      <td class="hidden sm:table-cell p-2 text-white">$${fmt(amount)}</td>
+      <td class="hidden sm:table-cell p-2 text-white">$${fmt(paid)}</td>
+      <td class="hidden sm:table-cell p-2 text-white">$${fmt(balance)}</td>
       <td class="hidden sm:table-cell p-2">
-        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs sm:text-sm font-semibold ${statusClasses}">
+        <span class="inline-flex items-center rounded-full px-2 py-1 text-sm font-semibold ${statusClasses}">
           ${statusText}
         </span>
       </td>
       <td class="hidden sm:table-cell p-2 no-print">
-        <div class="flex flex-wrap gap-1 sm:gap-2">
-          <button class="rounded-lg bg-green-600 hover:bg-green-700 text-white dark:text-gray-200 p-1 sm:p-2" onclick="sendWhatsApp(${inv.id})" title="WhatsApp">${icons.whatsapp}</button>
-          <button class="rounded-lg bg-blue-600 hover:bg-blue-700 text-white dark:text-gray-200 p-1 sm:p-2" onclick="sendSMS(${inv.id})" title="SMS">${icons.sms}</button>
-          <button class="rounded-lg bg-gray-700 hover:bg-gray-800 text-white dark:text-gray-200 p-1 sm:p-2" onclick="printInvoiceById(${inv.id})" title="Print">${icons.print}</button>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="sendWhatsApp(${inv.id})" class="bg-green-600 hover:bg-green-700 text-white p-1 sm:p-2 rounded">${icons.whatsapp}</button>
+          <button onclick="sendSMS(${inv.id})" class="bg-blue-600 hover:bg-blue-700 text-white p-1 sm:p-2 rounded">${icons.sms}</button>
+          <button onclick="callCustomer('${inv.phone}')" class="bg-indigo-600 hover:bg-indigo-700 text-white p-1 sm:p-2 rounded">${icons.phone}</button>
+          <button onclick="printInvoiceById(${inv.id})" class="bg-gray-700 hover:bg-gray-800 text-white p-1 sm:p-2 rounded">${icons.print}</button>
           ${
             status === 'paid'
-              ? `<button class="rounded-lg bg-gray-300 hover:bg-gray-400 text-gray-900 dark:bg-gray-500 dark:text-gray-100 p-1 sm:p-2" onclick='markUnpaid(${inv.id})'>${icons.unpaid}</button>`
-              : `<button class="rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-gray-100 p-1 sm:p-2" onclick='markPaid(${inv.id})'>${icons.paid}</button>`
+              ? `<button onclick="markUnpaid(${inv.id})" class="bg-gray-300 hover:bg-gray-400 text-gray-900 p-1 sm:p-2 rounded">${icons.unpaid}</button>`
+              : `<button onclick="markPaid(${inv.id})" class="bg-gray-200 hover:bg-gray-300 text-gray-800 p-1 sm:p-2 rounded">${icons.paid}</button>`
           }
-          <button class="rounded-lg bg-purple-600 hover:bg-purple-700 text-white dark:text-gray-200 p-1 sm:p-2" onclick="duplicateInvoice(${inv.id})">${icons.duplicate}</button>
-          <button class="bg-yellow-500 text-white dark:text-gray-200 p-1 sm:p-2 rounded" onclick="editInvoice(${inv.id})">${icons.edit}</button>
-          <button class="rounded-lg bg-rose-600 hover:bg-rose-700 text-white dark:text-gray-200 p-1 sm:p-2" onclick='deleteInvoice(${inv.id})'>${icons.delete}</button>
+          <button onclick="duplicateInvoice(${inv.id})" class="bg-purple-600 hover:bg-purple-700 text-white p-1 sm:p-2 rounded">${icons.duplicate}</button>
+          <button onclick="editInvoice(${inv.id})" class="bg-yellow-500 text-white p-1 sm:p-2 rounded">${icons.edit}</button>
+          <button onclick="deleteInvoice(${inv.id})" class="bg-rose-600 hover:bg-rose-700 text-white p-1 sm:p-2 rounded">${icons.delete}</button>
         </div>
       </td>
 
-      <!-- Mobile card -->
-      <td class="sm:hidden p-3">
-        <div class="${rowBg} shadow rounded-2xl p-4 mb-3">
+      <!-- Mobile Card -->
+      <td class="sm:hidden p-2">
+        <div class="bg-gray-800 text-white shadow-lg rounded-lg p-4 mb-3 w-full">
           <div class="flex justify-between items-center mb-2">
-            <div class="text-base font-bold text-blue-600 dark:text-blue-400">#${index + 1} - ${inv.invoiceNumber || '-'}</div>
-            <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${statusClasses}">
-              ${statusText}
-            </span>
+            <div class="font-bold text-lg">#${index + 1} - ${inv.invoiceNumber || '-'}</div>
+            <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${statusClasses}">${statusText}</span>
           </div>
-          <div class="mb-1 text-gray-800 dark:text-gray-200"><span class="font-semibold">${labels.date}:</span> ${inv.date || '-'}</div>
-          <div class="mb-1 text-gray-800 dark:text-gray-200"><span class="font-semibold">${labels.customer}:</span> ${inv.name || '-'}</div>
-          <div class="mb-1 text-gray-800 dark:text-gray-200"><span class="font-semibold">${labels.phone}:</span> ${inv.phone || '-'}</div>
-          <div class="mb-2 text-gray-800 dark:text-gray-200">
-            <span class="font-semibold">${labels.amount}:</span> $${fmt(amount)} &nbsp;
-            <span class="font-semibold">${labels.paidLabel}:</span> $${fmt(paid)} &nbsp;
-            <span class="font-semibold">${labels.balanceLabel}:</span> $${fmt(balance)}
+          <div class="text-white text-sm mb-1"><strong>${labels.date}:</strong> ${inv.date || '-'}</div>
+          <div class="text-white text-sm mb-1"><strong>${labels.customer}:</strong> ${inv.name || '-'}</div>
+          <div class="text-white text-sm mb-1"><strong>${labels.phone}:</strong> ${inv.phone || '-'}</div>
+          <div class="text-white text-sm mb-3">
+            <strong>${labels.amount}:</strong> $${fmt(amount)} &nbsp;
+            <strong>${labels.paidLabel}:</strong> $${fmt(paid)} &nbsp;
+            <strong>${labels.balanceLabel}:</strong> $${fmt(balance)}
           </div>
           <div class="flex flex-wrap gap-2">
-            <button class="rounded-lg bg-green-600 hover:bg-green-700 text-white dark:text-gray-200 px-3 py-2 text-sm" onclick="sendWhatsApp(${inv.id})">${icons.whatsapp}</button>
-            <button class="rounded-lg bg-blue-600 hover:bg-blue-700 text-white dark:text-gray-200 px-3 py-2 text-sm" onclick="sendSMS(${inv.id})">${icons.sms}</button>
-            <button class="rounded-lg bg-gray-700 hover:bg-gray-800 text-white dark:text-gray-200 px-3 py-2 text-sm" onclick="printInvoiceById(${inv.id})">${icons.print}</button>
+            <button onclick="sendWhatsApp(${inv.id})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm flex-1">${icons.whatsapp}</button>
+            <button onclick="sendSMS(${inv.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm flex-1">${icons.sms}</button>
+            <button onclick="callCustomer('${inv.phone}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded text-sm flex-1">${icons.phone}</button>
+            <button onclick="printInvoiceById(${inv.id})" class="bg-gray-700 hover:bg-gray-800 text-white px-3 py-2 rounded text-sm flex-1">${icons.print}</button>
             ${
               status === 'paid'
-                ? `<button class="rounded-lg bg-gray-300 hover:bg-gray-400 text-gray-900 dark:bg-gray-500 dark:text-gray-100 px-3 py-2 text-sm" onclick='markUnpaid(${inv.id})'>${icons.unpaid}</button>`
-                : `<button class="rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-600 dark:text-gray-100 px-3 py-2 text-sm" onclick='markPaid(${inv.id})'>${icons.paid}</button>`
+                ? `<button onclick="markUnpaid(${inv.id})" class="bg-gray-300 hover:bg-gray-400 text-gray-900 px-3 py-2 rounded text-sm flex-1">${icons.unpaid}</button>`
+                : `<button onclick="markPaid(${inv.id})" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-2 rounded text-sm flex-1">${icons.paid}</button>`
             }
-            <button class="rounded-lg bg-purple-600 hover:bg-purple-700 text-white dark:text-gray-200 px-3 py-2 text-sm" onclick="duplicateInvoice(${inv.id})">${icons.duplicate}</button>
-            <button class="bg-yellow-500 text-white dark:text-gray-200 px-3 py-2 rounded text-sm" onclick="editInvoice(${inv.id})">${icons.edit}</button>
-            <button class="rounded-lg bg-rose-600 hover:bg-rose-700 text-white dark:text-gray-200 px-3 py-2 text-sm" onclick='deleteInvoice(${inv.id})'>${icons.delete}</button>
+            <button onclick="duplicateInvoice(${inv.id})" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm flex-1">${icons.duplicate}</button>
+            <button onclick="editInvoice(${inv.id})" class="bg-yellow-500 text-white px-3 py-2 rounded text-sm flex-1">${icons.edit}</button>
+            <button onclick="deleteInvoice(${inv.id})" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded text-sm flex-1">${icons.delete}</button>
           </div>
         </div>
       </td>
@@ -923,8 +916,9 @@ addItemBtn.addEventListener('click', e => {
 addItemBtn.innerText = t("addItem");
   
   // SAVE NEW INVOICE
-  $('saveInvoiceBtn').addEventListener('click', ()=> {
-  if(!validateInvoiceForm()) return;
+
+$('saveInvoiceBtn').addEventListener('click', () => {
+  if (!validateInvoiceForm()) return;
 
   const editingId = $('editingInvoiceId').value;
 
@@ -933,16 +927,16 @@ addItemBtn.innerText = t("addItem");
   document.querySelectorAll('.item-row').forEach(row => {
     const desc = row.querySelector('.descInput').value.trim();
     const amt = parseFloat(row.querySelector('.amountInput').value) || 0;
-    if(desc && amt > 0) items.push({ description: desc, amount: amt });
+    if (desc && amt > 0) items.push({ description: desc, amount: amt });
   });
 
   const totalAmount = items.reduce((sum, i) => sum + i.amount, 0);
   const paid = parseFloat($('paid').value) || 0;
 
-  if(editingId){ 
+  if (editingId) {
     // UPDATE EXISTING INVOICE
     const inv = invoices.find(x => x.id == editingId);
-    if(!inv) return;
+    if (!inv) return;
 
     inv.name = $('customerName').value.trim();
     inv.phone = $('customerPhone').value.trim();
@@ -973,7 +967,9 @@ addItemBtn.innerText = t("addItem");
     alert('Invoice created');
   }
 
-  localStorage.setItem(LS_KEYS.INVOICES, JSON.stringify(invoices));
+  // ✅ Save only once, with one consistent key
+  localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
+
   renderInvoices();
 
   // Reset form
@@ -1084,9 +1080,11 @@ function printInvoiceById(id) {
 
 // Main print function
 // Main print function
-function printInvoice(inv, autoPrint = false) { // autoPrint = true → isla markiiba daabac
+// PRINT INVOICE for small receipt printer
+function printInvoice(inv, autoPrint = false) { 
   const w = window.open('', '_blank');
 
+  // Items HTML
   let itemsHtml = '';
   if (inv.items && inv.items.length) {
     inv.items.forEach(item => {
@@ -1102,52 +1100,47 @@ function printInvoice(inv, autoPrint = false) { // autoPrint = true → isla mar
     </tr>`;
   }
 
+  const style = `
+    body { font-family: Arial, sans-serif; margin: 5px; font-size: 10px; color: #333; }
+    h2 { font-size: 16px; margin: 0; color: #1e40af; }
+    table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    th, td { border: 1px solid #000; padding: 4px; }
+    p { font-size: 10px; margin: 4px 0; }
+    .status { font-size: 8px; padding: 2px 4px; display: inline-block; border-radius: 3px; font-weight: bold; }
+    .paid { background-color: #d1fae5; color: #065f46; }
+    .unpaid { background-color: #fef3c7; color: #b45309; }
+  `;
+
   const html = `
 <head>
   <title>Invoice ${escapeHtml(inv.invoiceNumber)}</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; font-size: 14px; color: #333; }
-    h2 { margin: 0; font-size: 24px; color: #1e40af; }
-    .flex { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-    .invoice-info div { margin-bottom: 5px; font-size: 16px; }
-    .bill-to { margin-bottom: 15px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-    th, td { border: 1px solid #000; padding: 8px; }
-    th { background: #f3f4f6; font-weight: bold; text-align: left; }
-    td.right { text-align: right; }
-    .status { display: inline-block; padding: 4px 8px; border-radius: 5px; font-weight: bold; font-size: 12px; }
-    .paid { background-color: #d1fae5; color: #065f46; }
-    .unpaid { background-color: #fef3c7; color: #b45309; }
-    hr { border: none; border-top: 2px solid #1e40af; margin: 15px 0; }
-    p { font-size: 16px; margin-top: 10px; }
-  </style>
+  <style>${style}</style>
 </head>
-  <div class="flex">
+<body>
+  <div style="display:flex; justify-content:space-between; margin-bottom: 5px;">
     <div>
       <h2>${escapeHtml(currentUser.supermarketName)}</h2>
       <div>${escapeHtml(currentUser.supermarketPhone)}</div>
     </div>
-    <div class="invoice-info">
+    <div>
       <div><strong>Invoice:</strong> ${escapeHtml(inv.invoiceNumber)}</div>
       <div><strong>Date:</strong> ${escapeHtml(inv.date)}</div>
     </div>
   </div>
 
-  <hr>
-
-  <div class="bill-to">
+  <div style="margin-bottom: 5px;">
     <strong>Bill To:</strong> ${escapeHtml(inv.name)}<br>
     ${escapeHtml(inv.phone)}
   </div>
 
   <table>
     <thead>
-      <tr><th>Description</th><th class="right">Amount</th></tr>
+      <tr><th>Description</th><th style="text-align:right;">Amount</th></tr>
     </thead>
     <tbody>
       ${itemsHtml}
-      <tr><td>Paid</td><td class="right">-$${fmt(inv.paid)}</td></tr>
-      <tr><td><strong>Balance</strong></td><td class="right"><strong>$${fmt(inv.balance)}</strong></td></tr>
+      <tr><td>Paid</td><td style="text-align:right;">-$${fmt(inv.paid)}</td></tr>
+      <tr><td><strong>Balance</strong></td><td style="text-align:right;"><strong>$${fmt(inv.balance)}</strong></td></tr>
     </tbody>
   </table>
 
@@ -1158,7 +1151,6 @@ function printInvoice(inv, autoPrint = false) { // autoPrint = true → isla mar
   w.document.write(html);
   w.document.close();
 
-  // Haddii autoPrint = true → isla markiiba daabac
   if (autoPrint) {
     w.onload = () => setTimeout(() => { w.print(); w.close(); }, 300);
   }
@@ -1407,6 +1399,15 @@ document.getElementById('sendAllReminders').addEventListener('click', () => {
   sendNext();
 });
 
+function callCustomer(phone) {
+  if (!phone) {
+    alert("No phone number available for this customer.");
+    return;
+  }
+  window.location.href = `tel:${phone}`;
+}
+
+
 // Somali names for days
 const daysSomali = ["Axad", "Isniin", "Talaado", "Arbaco", "Khamiis", "Jimco", "Sabti"];
 
@@ -1456,59 +1457,106 @@ setInterval(updateClock, 1000);
 $('filterStatus').addEventListener('change', renderInvoices);
 $('searchName').addEventListener('input', renderInvoices);
 
-// Function to save notice (only once)
+// ====== Notices System ======
 
-// Render notices
+// Save a new notice (with optional welcome flag)
+function saveNotice(message, isWelcome = false) {
+  if (!message.trim()) return;
+
+  const notices = JSON.parse(localStorage.getItem("notices")) || [];
+
+  // Prevent duplicate welcome notices
+  if (
+    isWelcome &&
+    notices.some(n => n.isWelcome && n.message.includes(currentUser.supermarketName))
+  ) {
+    return;
+  }
+
+  const newNotice = {
+    id: Date.now().toString(),
+    message,
+    by: "Administrator",
+    date: new Date().toLocaleString(),
+    reactions: 0,
+    isWelcome
+  };
+
+  notices.push(newNotice);
+  localStorage.setItem("notices", JSON.stringify(notices));
+  renderNotices();
+}
+
+// Render all notices
 function renderNotices() {
   const noticeList = document.getElementById("noticeList");
+  if (!noticeList) return;
+
   const notices = JSON.parse(localStorage.getItem("notices")) || [];
   const reactedNotices = JSON.parse(localStorage.getItem("reactedNotices")) || {};
 
   noticeList.innerHTML = "";
 
-  notices.forEach((n, index) => {
+  // Sort: welcome notice on top
+  const sortedNotices = [...notices].sort((a, b) => (b.isWelcome ? 1 : 0) - (a.isWelcome ? 1 : 0));
+
+  sortedNotices.forEach((n, index) => {
     const div = document.createElement("div");
     div.className = "border p-3 rounded shadow mb-3";
-    div.innerHTML = `
-      <div class="font-medium">${n.message}</div>
-      <div class="text-sm text-gray-500 mt-1">By: ${n.by} | ${n.date}</div>
-      <div class="mt-2 flex items-center justify-between">
-        <span id="reactionCount-${index}" class="text-gray-600">${n.reactions} supermarkets reacted</span>
-        <button class="reactionBtn px-2 py-1 bg-green-500 text-white rounded">👍 React</button>
-      </div>
-    `;
-    noticeList.appendChild(div);
 
-    const btn = div.querySelector(".reactionBtn");
+    if (n.isWelcome) {
+      // Welcome notice: no react button, no reactions count
+      div.innerHTML = `
+        <div class="font-medium text-blue-600">${n.message}</div>
+        <div class="text-sm text-gray-500 mt-1">By: ${n.by} | ${n.date}</div>
+      `;
+    } else {
+      // Normal notice
+      div.innerHTML = `
+        <div class="font-medium">${n.message}</div>
+        <div class="text-sm text-gray-500 mt-1">By: ${n.by} | ${n.date}</div>
+        <div class="mt-2 flex items-center justify-between">
+          <span id="reactionCount-${index}" class="text-gray-600">${n.reactions} supermarkets reacted</span>
+          <button class="reactionBtn px-2 py-1 bg-green-500 text-white rounded">👍 React</button>
+        </div>
+      `;
 
-    // Disable button if user already reacted
-    if (reactedNotices[n.message]) {
-      btn.disabled = true;
-      btn.textContent = "Reacted";
-      btn.classList.remove("bg-green-500");
-      btn.classList.add("bg-gray-400");
-    }
+      const btn = div.querySelector(".reactionBtn");
 
-    // Reaction button click
-    btn.addEventListener("click", () => {
-      if (!reactedNotices[n.message]) {
-        animateReaction(index, 1);
-        reactedNotices[n.message] = true;
-        localStorage.setItem("reactedNotices", JSON.stringify(reactedNotices));
-
+      // Disable button if already reacted
+      if (reactedNotices[n.id]) {
         btn.disabled = true;
         btn.textContent = "Reacted";
         btn.classList.remove("bg-green-500");
         btn.classList.add("bg-gray-400");
       }
-    });
+
+      btn.addEventListener("click", () => {
+        if (!reactedNotices[n.id]) {
+          animateReaction(index, 1);
+          reactedNotices[n.id] = true;
+          localStorage.setItem("reactedNotices", JSON.stringify(reactedNotices));
+
+          btn.disabled = true;
+          btn.textContent = "Reacted";
+          btn.classList.remove("bg-green-500");
+          btn.classList.add("bg-gray-400");
+        }
+      });
+    }
+
+    noticeList.appendChild(div);
   });
 }
 
 // Animate reaction count increment
 function animateReaction(index, increment = 1) {
-  const reactionSpan = document.getElementById(`reactionCount-${index}`);
   const notices = JSON.parse(localStorage.getItem("notices")) || [];
+  if (!notices[index] || notices[index].isWelcome) return; // skip welcome notices
+
+  const reactionSpan = document.getElementById(`reactionCount-${index}`);
+  if (!reactionSpan) return;
+
   let current = notices[index].reactions;
   const target = current + increment;
 
@@ -1521,89 +1569,52 @@ function animateReaction(index, increment = 1) {
       requestAnimationFrame(step);
     }
   };
-
   step();
 }
 
-// Initial render
-renderNotices();
-
-// Add fake reactions every minute (smooth animation)
+// Fake reactions every minute (only for non-welcome notices)
 setInterval(() => {
   const notices = JSON.parse(localStorage.getItem("notices")) || [];
   if (notices.length === 0) return;
 
-  // Pick a random notice and animate +1 reaction
-  const idx = Math.floor(Math.random() * notices.length);
+  const normalNotices = notices.filter(n => !n.isWelcome);
+  if (normalNotices.length === 0) return;
+
+  const randomNotice = normalNotices[Math.floor(Math.random() * normalNotices.length)];
+  const idx = notices.indexOf(randomNotice);
+
   animateReaction(idx, 1);
+}, 60000);
 
-}, 60000); // 60000ms = 1 minute
+// ====== Welcome Notice on Login ======
+window.addEventListener("DOMContentLoaded", () => {
+  if (!currentUser) return;
 
+  const welcomeMessage = `Welcome to the Invoice App Maker. ${currentUser.supermarketName}`;
+  saveNotice(welcomeMessage, true); // save once per supermarket
+  renderNotices();
+});
 
-// Modal functionality
+// ====== Modal ======
 const noticeBtn = document.getElementById("noticeBtn");
 const noticeModal = document.getElementById("noticeModal");
 const closeNoticeModal = document.getElementById("closeNoticeModal");
 
-noticeBtn.addEventListener("click", () => {
-  renderNotices();
-  noticeModal.classList.remove("hidden");
-  noticeModal.classList.add("flex");
-});
-
-closeNoticeModal.addEventListener("click", () => {
-  noticeModal.classList.add("hidden");
-  noticeModal.classList.remove("flex");
-});
-
-// Example notice (saved once)
-//  saveNotice("Welcome to the Invoice App Maker. ");
-
-
-// Function to save notice (only once)
-function saveNotice(message) {
-  if (!message.trim()) return;
-
-  const notices = JSON.parse(localStorage.getItem("notices")) || [];
-  const newNotice = {
-    message: message,
-    by: "Administrator", // <-- ensure this key matches renderNotices()
-    date: new Date().toLocaleString(),
-    reactions: 0
-  };
-
-  // Add only once if you want to prevent duplicates
-  if (!notices.some(n => n.message === message)) {
-    notices.push(newNotice);
-    localStorage.setItem("notices", JSON.stringify(notices));
+if (noticeBtn && noticeModal && closeNoticeModal) {
+  noticeBtn.addEventListener("click", () => {
     renderNotices();
-  }
+    noticeModal.classList.remove("hidden");
+    noticeModal.classList.add("flex");
+  });
+
+  closeNoticeModal.addEventListener("click", () => {
+    noticeModal.classList.add("hidden");
+    noticeModal.classList.remove("flex");
+  });
 }
 
-// Run once on page load to add the welcome notice for the current supermarket
-window.addEventListener("DOMContentLoaded", () => {
-  if (!currentUser) return;
 
-  const notices = JSON.parse(localStorage.getItem("notices")) || [];
-
-  let welcomeNotice = notices.find(
-    n => n.isWelcome && n.message.includes(currentUser.supermarketName)
-  );
-
-  if (!welcomeNotice) {
-    // Create new welcome notice
-    saveNotice(`Welcome to the Invoice App Maker. ${currentUser.supermarketName}`, true);
-  } else {
-    // Update date to current login
-    welcomeNotice.date = new Date().toLocaleString();
-    localStorage.setItem("notices", JSON.stringify(notices));
-  }
-
-  renderNotices();
-});
-
-saveNotice("We add Send all Remainder feature, let's check please...")
-
+//saveNotice("thanks")
 
 //delete notices
 //localStorage.removeItem("notices");
@@ -1614,9 +1625,3 @@ saveNotice("We add Send all Remainder feature, let's check please...")
   </script>
 </body>
 </html>
-
-
-
-
-
-
