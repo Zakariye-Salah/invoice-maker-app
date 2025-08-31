@@ -80,6 +80,9 @@
   <div class="max-w-5xl mx-auto p-4 sm:p-6">
 
 
+
+  
+
  
 
     <header class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
@@ -88,7 +91,8 @@
       <h1 id="mainTitle" class="text-2xl font-bold flex items-center gap-2 text-blue-700">
         <span>🧾</span> Invoice Maker
       </h1>
-          <!-- Actions -->
+      
+      <!-- Actions -->
 <div class="flex items-center gap-2 sm:gap-3 relative">
   <!-- Desktop buttons (hidden on small screens) -->
   <div class="hidden sm:flex flex-wrap items-center gap-2 sm:gap-3">
@@ -101,7 +105,7 @@
     <button id="loginbtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow relative transition-all duration-200">
       Edit User
     </button>
-    <button id="noticeBtn" class="px-4 py-2 bg-blue-600 text-white rounded">Notice</button>
+    <button id="noticeBtn" class="px-4 py-2 bg-blue-600 text-white rounded z-50 relative">Notice</button>
   </div>
 
   <!-- Mobile menu button -->
@@ -112,8 +116,8 @@
       <span id="hamburger3" class="block w-6 h-0.5 bg-white transition-all duration-300"></span>
     </button>
 
-    <!-- Mobile menu (hidden by default) -->
-    <div id="mobileMenu" class="absolute top-12 left-0 w-52 bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden max-h-0 transition-all duration-300 z-10 flex flex-col">
+    <!-- Mobile menu (floating from top-right) -->
+    <div id="mobileMenu" class="fixed top-16 right-3 w-52 bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden max-h-0 transition-all duration-300 z-30 flex flex-col scale-95 opacity-0">
       <button id="langBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">ENG</button>
       <button id="exportBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Export Invoices</button>
       <button id="loginbtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Edit User</button>
@@ -122,7 +126,16 @@
   </div>
 </div>
 
-  
+<!-- Notice Modal -->
+<div id="noticeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg w-96 max-h-[80vh] overflow-y-auto">
+    <h2 class="text-xl font-bold mb-4">Notices</h2>
+    <div id="noticeList" class="space-y-3"></div>
+    <button id="closeNoticeModal" class="mt-4 px-4 py-2 bg-red-500 text-white rounded">Close</button>
+  </div>
+</div>
+
+
 
     
         <!-- Store Label -->
@@ -173,6 +186,7 @@
               class="rounded-xl bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 shadow transition-all duration-200 flex items-center gap-2 no-print">
         Create Invoice
       </button>
+    
       <!-- Modal --> <div id="noticeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"> <div class="bg-white p-6 rounded-lg w-96 max-h-[80vh] overflow-y-auto"> <h2 class="text-xl font-bold mb-4">Notices</h2> <div id="noticeList" class="space-y-3"></div> <button id="closeNoticeModal" class="mt-4 px-4 py-2 bg-red-500 text-white rounded">Close</button> </div> </div>
     
 
@@ -574,40 +588,7 @@ window.addEventListener("DOMContentLoaded", () => {
   
   window.LS_KEYS = { SETTINGS: 'invoice_settings_v1', INVOICES: 'invoices_v1' };
 
-  const mobileBtn = document.getElementById('mobileMenuBtn');
-  const mobileMenu = document.getElementById('mobileMenu');
-  const hamburger = document.getElementById('hamburger');
-  const hamburger2 = document.getElementById('hamburger2');
-  const hamburger3 = document.getElementById('hamburger3');
-
-  mobileBtn.addEventListener('click', () => {
-    if (mobileMenu.classList.contains('max-h-0')) {
-      // Open menu
-      mobileMenu.classList.remove('max-h-0');
-      mobileMenu.classList.add('max-h-96');
-
-      // Animate hamburger to X
-      hamburger.style.transform = 'rotate(45deg) translate(5px, 5px)';
-      hamburger2.style.opacity = '0';
-      hamburger3.style.transform = 'rotate(-45deg) translate(5px, -5px)';
-    } else {
-      // Close menu
-      mobileMenu.classList.remove('max-h-96');
-      mobileMenu.classList.add('max-h-0');
-
-      // Reset hamburger
-      hamburger.style.transform = 'rotate(0) translate(0, 0)';
-      hamburger2.style.opacity = '1';
-      hamburger3.style.transform = 'rotate(0) translate(0, 0)';
-    }
-  });
-
-  // Forward clicks from mobile menu to original buttons
-  document.getElementById('langBtnMobile').addEventListener('click', () => document.getElementById('langBtn').click());
-  document.getElementById('exportBtnMobile').addEventListener('click', () => document.getElementById('exportBtn').click());
-  document.getElementById('loginbtnMobile').addEventListener('click', () => document.getElementById('loginbtn').click());
-  document.getElementById('noticeBtnMobile').addEventListener('click', () => document.getElementById('noticeBtn').click());
-
+  
   
   const $ = id => document.getElementById(id);
   const fmt = n => Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -692,6 +673,56 @@ window.addEventListener("DOMContentLoaded", () => {
     $("loginModal").classList.add('flex');
   }
 });
+
+const mobileBtn = document.getElementById('mobileMenuBtn');
+  const mobileMenu = document.getElementById('mobileMenu');
+  const hamburger = document.getElementById('hamburger');
+  const hamburger2 = document.getElementById('hamburger2');
+  const hamburger3 = document.getElementById('hamburger3');
+
+  mobileBtn.addEventListener('click', () => {
+    if (mobileMenu.classList.contains('max-h-0')) {
+      // Open menu with smooth floating animation
+      mobileMenu.classList.remove('max-h-0', 'scale-95', 'opacity-0');
+      mobileMenu.classList.add('max-h-96', 'scale-100', 'opacity-100');
+
+      // Animate hamburger to X
+      hamburger.style.transform = 'rotate(45deg) translate(5px, 5px)';
+      hamburger2.style.opacity = '0';
+      hamburger3.style.transform = 'rotate(-45deg) translate(5px, -5px)';
+    } else {
+      // Close menu
+      mobileMenu.classList.remove('max-h-96', 'scale-100', 'opacity-100');
+      mobileMenu.classList.add('max-h-0', 'scale-95', 'opacity-0');
+
+      // Reset hamburger
+      hamburger.style.transform = 'rotate(0) translate(0, 0)';
+      hamburger2.style.opacity = '1';
+      hamburger3.style.transform = 'rotate(0) translate(0, 0)';
+    }
+  });
+
+  // Forward clicks from mobile menu to original buttons
+  document.getElementById('langBtnMobile').addEventListener('click', () => document.getElementById('langBtn').click());
+  document.getElementById('exportBtnMobile').addEventListener('click', () => document.getElementById('exportBtn').click());
+  document.getElementById('loginbtnMobile').addEventListener('click', () => document.getElementById('loginbtn').click());
+  document.getElementById('noticeBtnMobile').addEventListener('click', () => document.getElementById('noticeBtn').click());
+
+  // Ensure notice modal is always on top
+  const noticeModal = document.getElementById('noticeModal');
+  const noticeBtn = document.getElementById('noticeBtn');
+  const closeNoticeModal = document.getElementById('closeNoticeModal');
+
+  noticeBtn.addEventListener('click', () => {
+    noticeModal.classList.remove('hidden');
+    noticeModal.classList.add('flex');
+  });
+
+  closeNoticeModal.addEventListener('click', () => {
+    noticeModal.classList.add('hidden');
+    noticeModal.classList.remove('flex');
+  });
+
 
 
 // -------------------- PROTECT INPUTS --------------------
@@ -1614,9 +1645,6 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 // ====== Modal ======
-const noticeBtn = document.getElementById("noticeBtn");
-const noticeModal = document.getElementById("noticeModal");
-const closeNoticeModal = document.getElementById("closeNoticeModal");
 
 if (noticeBtn && noticeModal && closeNoticeModal) {
   noticeBtn.addEventListener("click", () => {
@@ -1625,10 +1653,7 @@ if (noticeBtn && noticeModal && closeNoticeModal) {
     noticeModal.classList.add("flex");
   });
 
-  closeNoticeModal.addEventListener("click", () => {
-    noticeModal.classList.add("hidden");
-    noticeModal.classList.remove("flex");
-  });
+  
 }
 
 
@@ -1643,4 +1668,3 @@ if (noticeBtn && noticeModal && closeNoticeModal) {
   </script>
 </body>
 </html>
-
