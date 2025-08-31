@@ -108,22 +108,23 @@
     <button id="noticeBtn" class="px-4 py-2 bg-blue-600 text-white rounded z-50 relative">Notice</button>
   </div>
 
- <!-- Mobile menu button -->
+<!-- Mobile menu button -->
 <div class="sm:hidden relative">
   <button id="mobileMenuBtn" class="bg-gray-700 text-white px-3 py-2 rounded shadow relative z-20">
     <span id="hamburger" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
     <span id="hamburger2" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
     <span id="hamburger3" class="block w-6 h-0.5 bg-white transition-all duration-300"></span>
   </button>
-
-  <!-- Mobile menu (floating popup fully visible on right) -->
-  <div id="mobileMenu" class="absolute top-full right-0 mt-2 w-56 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-xl rounded-lg overflow-hidden flex flex-col opacity-0 scale-95 -translate-y-6 pointer-events-none z-30">
-    <button id="langBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">ENG</button>
-    <button id="exportBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Export Invoices</button>
-    <button id="loginbtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Edit User</button>
-    <button id="noticeBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Notice</button>
-  </div>
 </div>
+
+<!-- Mobile menu (fixed, top-right, floating popup) -->
+<div id="mobileMenu" class="fixed top-16 right-4 w-56 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-xl rounded-lg overflow-hidden flex flex-col opacity-0 scale-95 -translate-y-6 pointer-events-none z-50 transition-all duration-500">
+  <button id="langBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">ENG</button>
+  <button id="exportBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Export Invoices</button>
+  <button id="loginbtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Edit User</button>
+  <button id="noticeBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Notice</button>
+</div>
+
 </div>
 
 <!-- Notice Modal -->
@@ -680,6 +681,8 @@ const hamburger = document.getElementById('hamburger');
 const hamburger2 = document.getElementById('hamburger2');
 const hamburger3 = document.getElementById('hamburger3');
 
+
+//
 mobileBtn.addEventListener('click', () => {
   if (mobileMenu.classList.contains('opacity-0')) {
     // Open menu
