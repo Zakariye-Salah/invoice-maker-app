@@ -720,6 +720,60 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+// -------------------- SAVE LOGIN -------------------- //
+$("saveLogin").addEventListener("click", () => {
+  // Get values
+  const supermarketName = $("supermarketName").value.trim();
+  const supermarketAddress = $("supermarketAddress").value.trim();
+  const supermarketGmail = $("supermarketGmail").value.trim();
+  const supermarketPhone = $("supermarketPhone").value.trim();
+  const countryCode = $("countryCode").value.trim() || "+252";
+
+  if (!supermarketName) {
+    alert("Supermarket name is required!");
+    return;
+  }
+
+  // Save to localStorage
+  const user = {
+    supermarketName,
+    supermarketAddress,
+    supermarketGmail,
+    supermarketPhone,
+    countryCode
+  };
+  localStorage.setItem("currentUser", JSON.stringify(user));
+  currentUser = user;
+
+  // Update UI
+  const desktopStore = document.getElementById("storeDisplayDesktop");
+  const mobileStore = document.getElementById("storeDisplayMobile");
+  if (desktopStore) desktopStore.textContent = `Store: ${supermarketName}`;
+  if (mobileStore) mobileStore.textContent = `Store: ${supermarketName}`;
+
+  $("loginbtn").textContent = "Edit User";
+
+  // Hide modal
+  $("loginModal").classList.add("hidden");
+  $("loginModal").classList.remove("flex");
+});
+
+
+//✅ Update Auto Load section to refresh from storage
+window.addEventListener("DOMContentLoaded", () => {
+  const user = JSON.parse(localStorage.getItem("currentUser"));
+  if (user) {
+    currentUser = user;
+    document.getElementById("storeDisplayDesktop").textContent = `Store: ${user.supermarketName}`;
+    document.getElementById("storeDisplayMobile").textContent = `Store: ${user.supermarketName}`;
+    $("loginbtn").textContent = "Edit User";
+    load();
+  } else {
+    $("loginModal").classList.remove("hidden");
+    $("loginModal").classList.add("flex");
+  }
+});
+
 
 ///humberger
 
@@ -1842,6 +1896,8 @@ if (noticeBtn && noticeModal && closeNoticeModal) {
 //localStorage.removeItem("notices");
 //console.log("✅ All notices deleted from localStorage");
 
+//localStorage.removeItem("currentUser");
+//console.log("✅ Current user removed");
 
 
   </script>
