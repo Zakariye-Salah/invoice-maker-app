@@ -92,7 +92,7 @@
         <span>🧾</span> Invoice Maker
       </h1>
       
-      <!-- Actions -->
+   <!-- Actions -->
 <div class="flex items-center gap-2 sm:gap-3 relative">
   <!-- Desktop buttons (hidden on small screens) -->
   <div class="hidden sm:flex flex-wrap items-center gap-2 sm:gap-3">
@@ -108,22 +108,22 @@
     <button id="noticeBtn" class="px-4 py-2 bg-blue-600 text-white rounded z-50 relative">Notice</button>
   </div>
 
-  <!-- Mobile menu button -->
-  <div class="sm:hidden relative">
-    <button id="mobileMenuBtn" class="bg-gray-700 text-white px-3 py-2 rounded shadow relative z-20">
-      <span id="hamburger" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
-      <span id="hamburger2" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
-      <span id="hamburger3" class="block w-6 h-0.5 bg-white transition-all duration-300"></span>
-    </button>
+ <!-- Mobile menu button -->
+<div class="sm:hidden relative">
+  <button id="mobileMenuBtn" class="bg-gray-700 text-white px-3 py-2 rounded shadow relative z-20">
+    <span id="hamburger" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
+    <span id="hamburger2" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
+    <span id="hamburger3" class="block w-6 h-0.5 bg-white transition-all duration-300"></span>
+  </button>
 
-    <!-- Mobile menu (floating from top-right) -->
-    <div id="mobileMenu" class="fixed top-16 right-3 w-52 bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden max-h-0 transition-all duration-300 z-30 flex flex-col scale-95 opacity-0">
-      <button id="langBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">ENG</button>
-      <button id="exportBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Export Invoices</button>
-      <button id="loginbtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Edit User</button>
-      <button id="noticeBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Notice</button>
-    </div>
+  <!-- Mobile menu (floating popup fully visible on right) -->
+  <div id="mobileMenu" class="absolute top-full right-0 mt-2 w-56 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-xl rounded-lg overflow-hidden flex flex-col opacity-0 scale-95 -translate-y-6 pointer-events-none z-30">
+    <button id="langBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">ENG</button>
+    <button id="exportBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Export Invoices</button>
+    <button id="loginbtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Edit User</button>
+    <button id="noticeBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Notice</button>
   </div>
+</div>
 </div>
 
 <!-- Notice Modal -->
@@ -673,55 +673,66 @@ window.addEventListener("DOMContentLoaded", () => {
     $("loginModal").classList.add('flex');
   }
 });
-
+//humberger section
 const mobileBtn = document.getElementById('mobileMenuBtn');
-  const mobileMenu = document.getElementById('mobileMenu');
-  const hamburger = document.getElementById('hamburger');
-  const hamburger2 = document.getElementById('hamburger2');
-  const hamburger3 = document.getElementById('hamburger3');
+const mobileMenu = document.getElementById('mobileMenu');
+const hamburger = document.getElementById('hamburger');
+const hamburger2 = document.getElementById('hamburger2');
+const hamburger3 = document.getElementById('hamburger3');
 
-  mobileBtn.addEventListener('click', () => {
-    if (mobileMenu.classList.contains('max-h-0')) {
-      // Open menu with smooth floating animation
-      mobileMenu.classList.remove('max-h-0', 'scale-95', 'opacity-0');
-      mobileMenu.classList.add('max-h-96', 'scale-100', 'opacity-100');
+mobileBtn.addEventListener('click', () => {
+  if (mobileMenu.classList.contains('opacity-0')) {
+    // Open menu
+    mobileMenu.classList.remove('opacity-0', 'scale-95', '-translate-y-6', 'pointer-events-none');
+    mobileMenu.classList.add('opacity-100', 'scale-100', 'translate-y-0', 'pointer-events-auto');
 
-      // Animate hamburger to X
-      hamburger.style.transform = 'rotate(45deg) translate(5px, 5px)';
-      hamburger2.style.opacity = '0';
-      hamburger3.style.transform = 'rotate(-45deg) translate(5px, -5px)';
-    } else {
-      // Close menu
-      mobileMenu.classList.remove('max-h-96', 'scale-100', 'opacity-100');
-      mobileMenu.classList.add('max-h-0', 'scale-95', 'opacity-0');
+    // Subtle bounce animation
+    mobileMenu.animate([
+      { transform: 'translateY(-24px)', opacity: 0.7 },
+      { transform: 'translateY(0)', opacity: 1 },
+      { transform: 'translateY(-8px)', opacity: 1 },
+      { transform: 'translateY(0)', opacity: 1 }
+    ], {
+      duration: 400,
+      easing: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)'
+    });
 
-      // Reset hamburger
-      hamburger.style.transform = 'rotate(0) translate(0, 0)';
-      hamburger2.style.opacity = '1';
-      hamburger3.style.transform = 'rotate(0) translate(0, 0)';
-    }
-  });
+    // Hamburger to X
+    hamburger.style.transform = 'rotate(45deg) translate(5px, 5px)';
+    hamburger2.style.opacity = '0';
+    hamburger3.style.transform = 'rotate(-45deg) translate(5px, -5px)';
+  } else {
+    // Close menu
+    mobileMenu.classList.remove('opacity-100', 'scale-100', 'translate-y-0', 'pointer-events-auto');
+    mobileMenu.classList.add('opacity-0', 'scale-95', '-translate-y-6', 'pointer-events-none');
 
-  // Forward clicks from mobile menu to original buttons
-  document.getElementById('langBtnMobile').addEventListener('click', () => document.getElementById('langBtn').click());
-  document.getElementById('exportBtnMobile').addEventListener('click', () => document.getElementById('exportBtn').click());
-  document.getElementById('loginbtnMobile').addEventListener('click', () => document.getElementById('loginbtn').click());
-  document.getElementById('noticeBtnMobile').addEventListener('click', () => document.getElementById('noticeBtn').click());
+    // Reset hamburger
+    hamburger.style.transform = 'rotate(0) translate(0, 0)';
+    hamburger2.style.opacity = '1';
+    hamburger3.style.transform = 'rotate(0) translate(0, 0)';
+  }
+});
 
-  // Ensure notice modal is always on top
-  const noticeModal = document.getElementById('noticeModal');
-  const noticeBtn = document.getElementById('noticeBtn');
-  const closeNoticeModal = document.getElementById('closeNoticeModal');
+// Forward clicks from mobile menu to original buttons
+document.getElementById('langBtnMobile').addEventListener('click', () => document.getElementById('langBtn').click());
+document.getElementById('exportBtnMobile').addEventListener('click', () => document.getElementById('exportBtn').click());
+document.getElementById('loginbtnMobile').addEventListener('click', () => document.getElementById('loginbtn').click());
+document.getElementById('noticeBtnMobile').addEventListener('click', () => document.getElementById('noticeBtn').click());
 
-  noticeBtn.addEventListener('click', () => {
-    noticeModal.classList.remove('hidden');
-    noticeModal.classList.add('flex');
-  });
+// Notice modal
+const noticeModal = document.getElementById('noticeModal');
+const noticeBtn = document.getElementById('noticeBtn');
+const closeNoticeModal = document.getElementById('closeNoticeModal');
 
-  closeNoticeModal.addEventListener('click', () => {
-    noticeModal.classList.add('hidden');
-    noticeModal.classList.remove('flex');
-  });
+noticeBtn.addEventListener('click', () => {
+  noticeModal.classList.remove('hidden');
+  noticeModal.classList.add('flex');
+});
+
+closeNoticeModal.addEventListener('click', () => {
+  noticeModal.classList.add('hidden');
+  noticeModal.classList.remove('flex');
+});
 
 
 
@@ -1657,7 +1668,7 @@ if (noticeBtn && noticeModal && closeNoticeModal) {
 }
 
 
-saveNotice("Waad ku mahadsantahay isticmaalka appkeena")
+//saveNotice("thanks")
 
 //delete notices
 //localStorage.removeItem("notices");
@@ -1668,4 +1679,3 @@ saveNotice("Waad ku mahadsantahay isticmaalka appkeena")
   </script>
 </body>
 </html>
-
