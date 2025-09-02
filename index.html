@@ -523,7 +523,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 
 <script>
-  /* auth.js - full updated file
+  
+/* auth.js - full updated file
    Features:
    - invoices/products/reports (from user's app)
    - settings modal (green cog beside supermarket name)
@@ -833,37 +834,98 @@
   let cart = [];
 
   /* ============= AUTH (register/login/logout) ============= */
-  function showLoginForm(){ registrationForm?.classList.add('hidden'); loginForm?.classList.remove('hidden'); }
-  function showRegisterForm(){ registrationForm?.classList.remove('hidden'); loginForm?.classList.add('hidden'); }
+  /* ============= AUTH (register/login/logout) ============= */
 
-  registerBtn?.addEventListener('click', () => {
-    const name = regName.value.trim();
-    const address = regAddress.value.trim();
-    const phone = regPhone.value.trim();
-    const email = regEmail.value.trim();
-    const password = regPassword.value;
-    const confirm = regConfirm.value;
-    if (!name || !address || !phone || !email || !password || !confirm) { alert('Please fill in all fields.'); return; }
-    if (password !== confirm) { alert('Passwords do not match.'); return; }
-    const users = getUsers();
-    if (users.find(u => u && u.name && u.name.toLowerCase() === name.toLowerCase())) { alert('Supermarket name taken.'); return; }
-    users.push({ name, address, phone, email, password });
-    saveUsers(users);
-    alert('Registered. Please login.');
-    regName.value = regAddress.value = regPhone.value = regEmail.value = regPassword.value = regConfirm.value = '';
-    showLoginForm();
-  });
+// Switch views
+function showLoginForm() {
+  registrationForm?.classList.add("hidden");
+  loginForm?.classList.remove("hidden");
+}
+function showRegisterForm() {
+  registrationForm?.classList.remove("hidden");
+  loginForm?.classList.add("hidden");
+}
 
-  loginBtn?.addEventListener('click', () => {
-    const name = loginName.value.trim();
-    const pwd = loginPassword.value;
-    if (!name || !pwd) { alert('Enter name & password'); return; }
-    const users = getUsers();
-    const user = users.find(u => u && u.name && u.name.toLowerCase() === name.toLowerCase() && u.password === pwd);
-    if (!user) { alert('Invalid credentials'); return; }
-    setCurrentUser(user);
-    loadDashboard();
-  });
+// Toggle links
+document.getElementById("showLogin")?.addEventListener("click", showLoginForm);
+document.getElementById("showRegister")?.addEventListener("click", showRegisterForm);
+
+// Registration
+registerBtn?.addEventListener("click", () => {
+  const name = regName.value.trim();
+  const address = regAddress.value.trim();
+  const phone = regPhone.value.trim();
+  const email = regEmail.value.trim();
+  const password = regPassword.value;
+  const confirm = regConfirm.value;
+
+  if (!name || !address || !phone || !email || !password || !confirm) {
+    alert("Please fill in all fields.");
+    return;
+  }
+  if (password !== confirm) {
+    alert("Passwords do not match.");
+    return;
+  }
+
+  const users = getUsers();
+  if (
+    users.find(
+      (u) =>
+        u &&
+        u.name &&
+        u.name.toLowerCase() === name.toLowerCase()
+    )
+  ) {
+    alert("Supermarket name already taken.");
+    return;
+  }
+
+  users.push({ name, address, phone, email, password });
+  saveUsers(users);
+
+  alert("Registered successfully. Please login.");
+  regName.value =
+    regAddress.value =
+    regPhone.value =
+    regEmail.value =
+    regPassword.value =
+    regConfirm.value =
+      "";
+
+  showLoginForm();
+});
+
+// Login
+loginBtn?.addEventListener("click", () => {
+  const name = loginName.value.trim();
+  const pwd = loginPassword.value;
+
+  if (!name || !pwd) {
+    alert("Enter supermarket name & password");
+    return;
+  }
+
+  const users = getUsers();
+  const user = users.find(
+    (u) =>
+      u &&
+      u.name &&
+      u.name.toLowerCase() === name.toLowerCase() &&
+      u.password === pwd
+  );
+
+  if (!user) {
+    alert("Invalid credentials");
+    return;
+  }
+
+  setCurrentUser(user);
+  loadDashboard();
+});
+
+
+
 
   logoutBtn?.addEventListener('click', () => {
     clearCurrentUser();
@@ -2015,5 +2077,6 @@
 </script>
 </body>
 </html>
+
 
 
