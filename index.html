@@ -20,28 +20,60 @@
 
 <!-- ================= AUTH SECTION ================= -->
 <div id="authSection" class="max-w-lg mx-auto p-6 bg-white shadow-md mt-10 rounded-lg">
+<!-- ================= AUTH SECTION ================= -->
+<div id="authSection" class="max-w-md mx-auto p-6 mt-12 bg-white dark:bg-gray-900 shadow-xl rounded-2xl">
+  
   <!-- Registration -->
   <div id="registrationForm">
-    <h1 class="text-2xl font-bold mb-4">Supermarket Registration</h1>
-    <input id="regName" placeholder="Supermarket Name" class="w-full p-2 mb-2 border rounded">
-    <input id="regAddress" placeholder="Address" class="w-full p-2 mb-2 border rounded">
-    <input id="regPhone" placeholder="Phone" class="w-full p-2 mb-2 border rounded">
-    <input id="regEmail" placeholder="Email" class="w-full p-2 mb-2 border rounded">
-    <input id="regPassword" type="password" placeholder="Password" class="w-full p-2 mb-2 border rounded">
-    <input id="regConfirm" type="password" placeholder="Confirm Password" class="w-full p-2 mb-4 border rounded">
-    <button id="registerBtn" class="w-full bg-blue-600 text-white p-2 rounded mb-6 hover:bg-blue-700">Register</button>
-    <p class="text-center text-sm">Already have an account? <span id="showLogin" class="text-blue-600 cursor-pointer">Login here</span></p>
+    <h1 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-200">
+      🛒 Supermarket Registration
+    </h1>
+
+    <div class="space-y-3">
+      <input id="regName" placeholder="Supermarket Name" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+      <input id="regAddress" placeholder="Address" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+      <input id="regPhone" placeholder="Phone" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+      <input id="regEmail" type="email" placeholder="Email" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+      <input id="regPassword" type="password" placeholder="Password" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+      <input id="regConfirm" type="password" placeholder="Confirm Password" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500">
+    </div>
+
+    <button id="registerBtn" class="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
+      Register
+    </button>
+
+    <p class="text-center text-sm mt-4 text-gray-600 dark:text-gray-300">
+      Already have an account? 
+      <button id="showLogin" class="text-blue-600 font-medium hover:underline focus:outline-none">
+        Login here
+      </button>
+    </p>
   </div>
 
   <!-- Login -->
   <div id="loginForm" class="hidden">
-    <h1 class="text-2xl font-bold mb-4">Supermarket Login</h1>
-    <input id="loginName" placeholder="Supermarket Name" class="w-full p-2 mb-2 border rounded">
-    <input id="loginPassword" type="password" placeholder="Password" class="w-full p-2 mb-4 border rounded">
-    <button id="loginBtn" class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">Login</button>
-    <p class="text-center text-sm">Don't have an account? <span id="showRegister" class="text-blue-600 cursor-pointer">Register here</span></p>
+    <h1 class="text-2xl font-bold mb-6 text-center text-gray-800 dark:text-gray-200">
+      🔑 Supermarket Login
+    </h1>
+
+    <div class="space-y-3">
+      <input id="loginName" placeholder="Supermarket Name" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500">
+      <input id="loginPassword" type="password" placeholder="Password" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-green-500">
+    </div>
+
+    <button id="loginBtn" class="w-full mt-6 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition">
+      Login
+    </button>
+
+    <p class="text-center text-sm mt-4 text-gray-600 dark:text-gray-300">
+      Don’t have an account? 
+      <button id="showRegister" class="text-blue-600 font-medium hover:underline focus:outline-none">
+        Register here
+      </button>
+    </p>
   </div>
 </div>
+
 
 <!-- ================= DASHBOARD SECTION ================= -->
 <div id="dashboardSection" class="hidden max-w-6xl mx-auto p-6 bg-white shadow-md mt-10 rounded-lg">
@@ -1985,3 +2017,4 @@
 </script>
 </body>
 </html>
+
