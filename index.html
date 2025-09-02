@@ -1,1910 +1,1987 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Invoice Maker</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-KtH6cL3sV+2F/..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supermarket Auth & Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-KtH6cL3sV+2F/..." crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-  <style>
-    @media print { .no-print { display: none !important; } }
-    .hidden-section { display: none; }
-    .modal-bg { display: none; background: rgba(0,0,0,0.5); position: fixed; inset: 0; justify-content: center; align-items: center; z-index: 50; }
-
-
-    /* Table-ka mobile friendly */
-@media (max-width: 640px) {
-  table {
-    width: 100%;
-    font-size: 14px; /* yarayn font-ka si u fit gareeyo */
-  }
-
-  th, td {
-    display: block;       /* Block-ka si uu u noqdo vertical */
-    width: 100%;
-    box-sizing: border-box;
-    text-align: left;
-  }
-  .notice {
-  background-color: #f0f4f8;
-  padding: 12px 16px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-}
-
-@media (max-width: 640px) {
-  .row {
-    flex-direction: column;
-    gap: 8px;
-  }
-}
-
-  /* Mobile-friendly table stacking on very small screens */
-  @media (max-width: 480px) {
-    table, thead, tbody, th, td, tr {
-      display: block;
-    }
-    thead tr {
-      display: none;
-    }
-    tbody tr {
-      margin-bottom: 1rem;
-      border: 1px solid #ddd;
-      padding: 0.5rem;
-      border-radius: 0.5rem;
-    }
-    td {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.25rem 0.5rem;
-      border: none;
-    }
-    td::before {
-      content: attr(data-label);
-      font-weight: bold;
-    }
-    .no-print {
-      display: flex; /* keep buttons visible */
-      flex-wrap: wrap;
-      gap: 0.25rem;
-    }
-  }
-
-
-
-  </style>
+<link rel="stylesheet" href="style.css">
+<style>
+      /* Smooth modal show/hide */
+      .modal-enter { opacity: 0; transform: translateY(-10px) scale(0.98); }
+    .modal-enter-active { opacity: 1; transform: translateY(0) scale(1); transition: all 220ms cubic-bezier(.2,.8,.2,1); }
+    .modal-exit { opacity: 1; transform: translateY(0) scale(1); }
+    .modal-exit-active { opacity: 0; transform: translateY(-8px) scale(0.98); transition: all 180ms ease; }
+</style>
 </head>
-<body class="bg-gray-50 text-gray-900">
-  <div class="max-w-5xl mx-auto p-4 sm:p-6">
+<body class="bg-gray-100">
 
+<!-- ================= AUTH SECTION ================= -->
+<div id="authSection" class="max-w-lg mx-auto p-6 bg-white shadow-md mt-10 rounded-lg">
+  <!-- Registration -->
+  <div id="registrationForm">
+    <h1 class="text-2xl font-bold mb-4">Supermarket Registration</h1>
+    <input id="regName" placeholder="Supermarket Name" class="w-full p-2 mb-2 border rounded">
+    <input id="regAddress" placeholder="Address" class="w-full p-2 mb-2 border rounded">
+    <input id="regPhone" placeholder="Phone" class="w-full p-2 mb-2 border rounded">
+    <input id="regEmail" placeholder="Email" class="w-full p-2 mb-2 border rounded">
+    <input id="regPassword" type="password" placeholder="Password" class="w-full p-2 mb-2 border rounded">
+    <input id="regConfirm" type="password" placeholder="Confirm Password" class="w-full p-2 mb-4 border rounded">
+    <button id="registerBtn" class="w-full bg-blue-600 text-white p-2 rounded mb-6 hover:bg-blue-700">Register</button>
+    <p class="text-center text-sm">Already have an account? <span id="showLogin" class="text-blue-600 cursor-pointer">Login here</span></p>
+  </div>
 
+  <!-- Login -->
+  <div id="loginForm" class="hidden">
+    <h1 class="text-2xl font-bold mb-4">Supermarket Login</h1>
+    <input id="loginName" placeholder="Supermarket Name" class="w-full p-2 mb-2 border rounded">
+    <input id="loginPassword" type="password" placeholder="Password" class="w-full p-2 mb-4 border rounded">
+    <button id="loginBtn" class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">Login</button>
+    <p class="text-center text-sm">Don't have an account? <span id="showRegister" class="text-blue-600 cursor-pointer">Register here</span></p>
+  </div>
+</div>
+
+<!-- ================= DASHBOARD SECTION ================= -->
+<div id="dashboardSection" class="hidden max-w-6xl mx-auto p-6 bg-white shadow-md mt-10 rounded-lg">
+
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Dashboard - <span id="storeDisplayDesktop"></span></h1>
+    <button id="logoutBtn" class="bg-red-600 text-white p-2 rounded hover:bg-red-700">Logout</button>
+  </div>
 
   
-
- 
-
-    <header class="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
-      <!-- Title -->
   
-      <h1 id="mainTitle" class="text-2xl font-bold flex items-center gap-2 text-blue-700">
-        <span>🧾</span> Invoice Maker
-      </h1>
+  <!-- ================= DASHBOARD CONTENT ================= -->
+  <div id="dashboardContent" class="mt-6">
+    <h2 class="text-xl font-bold mb-4">Reports Summary</h2>
+  
+    <!-- Responsive Card Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       
-<!-- Actions -->
-<div class="flex items-center gap-2 sm:gap-3 relative">
+      <!-- Invoices Card -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 flex flex-col items-center justify-center hover:shadow-xl transition">
+        <h3 class="text-lg font-semibold text-gray-600 dark:text-gray-300">Total Invoices</h3>
+        <p id="totalInvoices" class="text-3xl font-bold text-blue-600 mt-2">0</p>
+      </div>
   
-<!-- Desktop buttons -->
-<div class="hidden sm:flex flex-wrap items-center gap-2 sm:gap-3">
-  <button id="langBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded shadow transition-all duration-200">ENG</button>
-  <button id="exportBtn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded shadow transition-all duration-200">Export Invoices</button>
-  <button id="loginbtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow transition-all duration-200">Edit User</button>
-  <button id="noticeBtn" class="px-4 py-2 bg-blue-600 text-white rounded">Notice</button>
-  <button id="helpBtn" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Help</button>
-  <!-- Store Label -->
-  <span id="storeDisplayDesktop" class="font-semibold text-gray-700 px-2 py-1 bg-gray-100 rounded shadow inline-block">
-    My Store
-  </span>
-</div>
-
-<!-- Mobile Hamburger -->
-<div class="sm:hidden relative flex items-center gap-2">
-  <button id="mobileMenuBtn" class="bg-gray-700 text-white px-3 py-2 rounded shadow relative z-20">
-    <span id="hamburger" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
-    <span id="hamburger2" class="block w-6 h-0.5 bg-white mb-1 transition-all duration-300"></span>
-    <span id="hamburger3" class="block w-6 h-0.5 bg-white transition-all duration-300"></span>
-  </button>
-  <!-- Store Label -->
-  <span id="storeDisplayMobile" class="font-semibold text-gray-700 px-2 py-1 bg-gray-100 rounded shadow inline-block">
-    My Store
-  </span>
-</div>
-
-<!-- Mobile menu -->
-<div id="mobileMenu" class="fixed left-4 top-16 w-56 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-xl rounded-lg overflow-hidden flex flex-col opacity-0 scale-95 pointer-events-none z-50 transition-all duration-500">
-  <button id="langBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">ENG</button>
-  <button id="exportBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Export Invoices</button>
-  <button id="loginbtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Edit User</button>
-  <button id="noticeBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Notice</button>
-  <button id="helpBtnMobile" class="px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-left">Help</button>
-</div>
- 
+      <!-- Products Card -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 flex flex-col items-center justify-center hover:shadow-xl transition">
+        <h3 class="text-lg font-semibold text-gray-600 dark:text-gray-300">Total Products</h3>
+        <p id="totalProducts" class="text-3xl font-bold text-green-600 mt-2">0</p>
+      </div>
   
-
+      <!-- Sales Card -->
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 flex flex-col items-center justify-center hover:shadow-xl transition">
+        <h3 class="text-lg font-semibold text-gray-600 dark:text-gray-300">Total Sales</h3>
+        <p id="totalSales" class="text-3xl font-bold text-purple-600 mt-2">0</p>
+      </div>
   
-</div>
-
-
-<div id="helpModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg w-96 max-h-[80vh] overflow-y-auto shadow-xl">
-    <h2 id="helpTitle" class="text-xl font-bold mb-4 text-blue-700 dark:text-blue-400"></h2>
-    
-    <ul id="helpList" class="list-disc list-inside text-gray-700 dark:text-gray-200 space-y-2"></ul>
-
-    <button id="closeHelpModal" class="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-all duration-200">Close</button>
+    </div>
   </div>
-</div>
+  
+<!-- ================= INVOICES SECTION ================= -->
+<div id="invoicesSection" class="hidden max-w-5xl mx-auto p-4 sm:p-6">
 
-
-
-<!-- Notice Modal -->
-
-<div id="noticeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg w-96 max-h-[80vh] overflow-y-auto">
-    <h2 class="text-xl font-bold mb-4">Notices</h2>
-    <div id="noticeList" class="space-y-3"></div>
-    <button id="closeNoticeModal" class="mt-4 px-4 py-2 bg-red-500 text-white rounded">Close</button>
+  <!-- CREATE INVOICE BUTTON -->
+  <div class="mb-4 flex items-center justify-between flex-wrap gap-2">
+    <button id="createInvoiceBtn" 
+            class="rounded-xl bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 shadow transition-all duration-200 flex items-center gap-2">
+      + Create Invoice
+    </button>
+    <span id="currentTime" class="text-sm text-red-500 font-semibold"></span>
   </div>
+
+  <!-- CREATE INVOICE FORM -->
+  <section id="createInvoiceSection" class="bg-white rounded-2xl shadow p-4 sm:p-6 mb-6 hidden-section">
+    <input type="hidden" id="editingInvoiceId" />
+    <h2 class="text-lg font-semibold mb-3">Create Invoice</h2>
+
+    <!-- Customer Info -->
+    <div class="grid sm:grid-cols-5 gap-3 mb-4">
+      <label class="block sm:col-span-2">
+        <span class="text-sm">Customer Name</span>
+        <input id="customerName" class="mt-1 w-full rounded-xl border px-3 py-2" placeholder="e.g. Zakariye Salah" />
+      </label>
+      <label class="block sm:col-span-2">
+        <span class="text-sm">Customer Phone</span>
+        <input id="customerPhone" class="mt-1 w-full rounded-xl border px-3 py-2" placeholder="e.g. 617125558" />
+      </label>
+      <label class="block">
+        <span class="text-sm">Invoice Date</span>
+        <input id="invoiceDate" type="date" class="mt-1 w-full rounded-xl border px-3 py-2" />
+      </label>
+    </div>
+
+    <!-- Invoice Items -->
+    <div id="invoiceItemsContainer" class="mb-3">
+      <!-- JS will append item rows here -->
+    </div>
+    <button id="addItemBtn" class="mb-3 inline-block rounded-xl bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">+ Add Item</button>
+
+    <div class="grid sm:grid-cols-3 gap-3 mb-3">
+      <label>
+        <span class="text-sm">Total Amount</span>
+        <input id="amount" type="number" step="0.01" class="mt-1 w-full rounded-xl border px-3 py-2" placeholder="0" readonly />
+      </label>
+      <label>
+        <span class="text-sm">Amount Paid</span>
+        <input id="paid" type="number" step="0.01" class="mt-1 w-full rounded-xl border px-3 py-2" placeholder="0" />
+      </label>
+      <label>
+        <span class="text-sm">Status</span>
+        <select id="status" class="mt-1 w-full rounded-xl border px-3 py-2">
+          <option value="unpaid">Unpaid</option>
+          <option value="paid">Paid</option>
+        </select>
+      </label>
+    </div>
+
+    <button id="saveInvoiceBtn" class="rounded-xl bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 w-full">Save Invoice</button>
+    <p id="formMsg" class="hidden mt-3 text-red-600 text-sm"></p>
+  </section>
+
+  <!-- INVOICES LIST -->
+  <section class="bg-white rounded-2xl shadow p-4 sm:p-6">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+      <h2 id="invoicesTitle" class="text-lg font-semibold mr-3">Invoices</h2>
+
+      <div class="flex flex-wrap items-center gap-2 flex-1 min-w-[250px]">
+        <button id="clearPaidBtn" class="bg-red-600 text-white px-3 py-2 rounded whitespace-nowrap">Clear Paid</button>
+        <select id="filterStatus" class="rounded-xl border px-3 py-2 whitespace-nowrap">
+          <option value="all">All</option>
+          <option value="paid">Paid</option>
+          <option value="unpaid">Unpaid</option>
+        </select>
+        <input id="searchName" class="rounded-xl border px-3 py-2 flex-1 min-w-[120px]" placeholder="Search by name..." />
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2 mb-4">
+      <select id="reminderMethod" class="border rounded px-2 py-1 whitespace-nowrap">
+        <option value="wa">WhatsApp</option>
+        <option value="sms">SMS</option>
+      </select>
+      <button id="sendAllReminders" class="bg-purple-600 text-white px-3 py-2 rounded whitespace-nowrap">Send All Reminders</button>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead class="hidden sm:table-header-group">
+          <tr>
+            <th class="p-2 font-medium text-blue-600">No</th>
+            <th class="p-2 font-medium text-blue-600">Invoice</th>
+            <th class="p-2 font-medium text-blue-600">Date</th>
+            <th class="p-2 font-medium text-blue-600">Customer</th>
+            <th class="p-2 font-medium text-blue-600">Phone</th>
+            <th class="p-2 font-medium text-blue-600 text-right">Amount</th>
+            <th class="p-2 font-medium text-blue-600 text-right">Paid</th>
+            <th class="p-2 font-medium text-blue-600 text-right">Balance</th>
+            <th class="p-2 font-medium text-blue-600">Status</th>
+            <th class="p-2 font-medium text-blue-600 no-print">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="invoiceRows" class="block sm:table-row-group"></tbody>
+      </table>
+    </div>
+
+    <p id="emptyState" class="hidden text-center text-gray-500 py-6">No invoices yet.</p>
+  </section>
 </div>
 
 
+  <!-- ================= PRODUCTS SECTION ================= -->
+  <div id="productsSection" class="hidden mb-8">
+     <!-- Page container -->
+  <div class="min-h-screen flex flex-col pb-24">
 
-    
+    <!-- Top bar -->
+    <header class="bg-white/90 dark:bg-gray-800/90 backdrop-blur border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30">
+      <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <i class="fa-solid fa-boxes-stacked text-xl text-blue-600"></i>
+          <h1 id="pageTitle" class="text-lg font-semibold">Products</h1>
+        </div>
+
+        <!-- Right: search + add -->
+        <div class="flex items-center gap-2 w-full max-w-md">
+          <div class="relative flex-1">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input
+              id="searchInput"
+              type="search"
+              class="w-full pl-9 pr-3 py-2 rounded-xl bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Search products..."
+            />
+          </div>
+          <button id="addProductBtn"
+            class="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow transition">
+            <i class="fa-solid fa-plus mr-2"></i><span id="addBtnLabel">Add Product</span>
+          </button>
+
+            <!-- Shop/Cart button -->
+          <button id="openCartHeader"
+          class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl shadow transition flex items-center gap-1">
+          <i class="fa-solid fa-cart-shopping"></i>
+          <span id="cartCountHeader" class="ml-1">0</span>
+        </button>
+        </div>
       </div>
     </header>
-    
-    
-
-<!-- ========== LOGIN / EDIT SUPERMARKET MODAL ========== -->
-<div id="loginModal" class="modal-bg hidden">
-  <div class="bg-white p-6 rounded-xl shadow-lg w-full max-w-md">
-    <h2 id="modalTitle" class="text-lg font-bold mb-4">Supermarket Login</h2>
-    <label class="block mb-2">
-      <span class="text-sm">Supermarket Name *</span>
-      <input id="supermarketName" class="mt-1 w-full border px-3 py-2 rounded-xl" placeholder="e.g. Kowthar Supermarket" required />
-    </label>
-    <label class="block mb-2">
-      <span class="text-sm">Supermarket Address</span>
-      <input id="supermarketAddress" class="mt-1 w-full border px-3 py-2 rounded-xl" placeholder="e.g. Hamarweyne, Mogadishu" />
-    </label>
-    <label class="block mb-2">
-      <span class="text-sm">Supermarket Gmail</span>
-      <input id="supermarketGmail" type="email" class="mt-1 w-full border px-3 py-2 rounded-xl" placeholder="e.g. example@gmail.com" />
-    </label>
-    <label class="block mb-2">
-      <span class="text-sm">Supermarket Phone</span>
-      <input id="supermarketPhone" class="mt-1 w-full border px-3 py-2 rounded-xl" placeholder="e.g. 617XXXXXX" />
-    </label>
-    <label class="block mb-4">
-      <span class="text-sm">Country Code</span>
-      <input id="countryCode" class="mt-1 w-full border px-3 py-2 rounded-xl" placeholder="+252" value="+252" />
-    </label>
-
-    <div class="flex justify-end gap-2">
-      <button id="cancelLogin" class="px-4 py-2 rounded-xl bg-gray-400 hover:bg-gray-500 text-white">Cancel</button>
-      <button id="saveLogin" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white">Save</button>
+    <!-- Shop Modal -->
+<div id="shopModal" class="hidden fixed inset-0 z-50">
+  <div id="shopBackdrop" class="absolute inset-0 bg-black/40"></div>
+  <div class="relative max-w-lg mx-auto mt-20 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5">
+    <h3 class="text-lg font-semibold mb-3">Shopping Cart</h3>
+    <div id="cartItems" class="space-y-3 max-h-60 overflow-y-auto"></div>
+    <div class="flex justify-between mt-4">
+      <button id="clearCart" class="px-4 py-2 rounded-lg bg-red-500 text-white">Cancel All</button>
+      <button id="closeCart" class="px-4 py-2 rounded-lg bg-gray-300">Cancel</button>
+      <button id="sellCart" class="px-4 py-2 rounded-lg bg-green-600 text-white">Sell</button>
     </div>
   </div>
 </div>
- 
-    <!-- CREATE INVOICE BUTTON -->
-    <div class="mb-4 flex items-center justify-between flex-wrap gap-2">
-      <!-- Create Invoice Button -->
-      <button id="createInvoiceBtn" 
-              class="rounded-xl bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 shadow transition-all duration-200 flex items-center gap-2 no-print">
-        Create Invoice
-      </button>
-    
-      <!-- Modal --> <div id="noticeModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"> <div class="bg-white p-6 rounded-lg w-96 max-h-[80vh] overflow-y-auto"> <h2 class="text-xl font-bold mb-4">Notices</h2> <div id="noticeList" class="space-y-3"></div> <button id="closeNoticeModal" class="mt-4 px-4 py-2 bg-red-500 text-white rounded">Close</button> </div> </div>
-    
 
-      <!-- Current Time Display -->
-      <span id="currentTime" class="text-sm text-red-500 font-semibold">
-        <!-- JS will update time here -->
-      </span>
-    
-     
-    </div>
-    
+<!-- Invoice Modal -->
+<div id="invoiceModal" class="hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 bg-black/40"></div>
+  <div class="relative max-w-lg mx-auto mt-20 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5">
+    <h3 class="text-lg font-semibold mb-3">Invoice</h3>
+    <form id="invoiceForm" class="space-y-3">
+      <input type="text" id="customerName" placeholder="Customer name" class="w-full border p-2 rounded" required>
+      <input type="tel" id="customerPhone" value="+252" class="w-full border p-2 rounded" required>
+      
+      <!-- New Date Input -->
+      <input type="date" id="invoiceDate" class="w-full border p-2 rounded" required>
+      
+      <div>Total: <span id="invoiceTotal">$0.00</span></div>
+      <input type="number" id="amountPaid" placeholder="Amount paid" class="w-full border p-2 rounded">
+      <select id="status" class="w-full border p-2 rounded">
+        <option value="unpaid">Unpaid</option>
+        <option value="paid">Paid</option>
+      </select>
+      <div class="flex justify-between mt-4">
+        <button type="button" id="backToCart" class="px-4 py-2 bg-gray-300 rounded">Back</button>
+        <button type="button" id="buyRecord" class="px-4 py-2 bg-blue-600 text-white rounded">Buy & Record Invoice</button>
+        <button type="button" id="buyOnly" class="px-4 py-2 bg-green-600 text-white rounded">Buy Only</button>
+      </div>
+    </form>
+  </div>
+</div>
 
 
+    <!-- Content -->
+    <main class="max-w-6xl mx-auto w-full px-4 pt-4 flex-1">
 
+      <!-- Empty state -->
+      <div id="emptyState" class="hidden text-center py-16">
+        <div class="text-5xl mb-4">🗃️</div>
+        <p id="emptyTitle" class="text-lg font-semibold mb-1">No products yet</p>
+        <p id="emptyDesc" class="text-gray-500 mb-4">Click “Add Product” to create your first one.</p>
+        <button id="emptyAddBtn"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl shadow transition">
+          <i class="fa-solid fa-plus mr-2"></i><span id="emptyAddLabel">Add Product</span>
+        </button>
+      </div>
 
-    <!-- CREATE INVOICE FORM -->
-    <section id="createInvoiceSection" class="bg-white rounded-2xl shadow p-4 sm:p-6 mb-6 hidden-section">
-      <input type="hidden" id="editingInvoiceId" />
+      <!-- Product table (desktop) -->
+      <div class="hidden md:block">
+        <div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-xl shadow">
+          <table class="min-w-full">
+            <thead>
+              <tr class="text-left text-sm uppercase tracking-wide text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+                <th class="px-4 py-3">#</th>
+                <th class="px-4 py-3" id="thName">Product</th>
+                <th class="px-4 py-3" id="thCost">Original Price</th>
+                <th class="px-4 py-3" id="thPrice">Price</th>
+                <th class="px-4 py-3" id="thQty">Qty</th>
+                <th class="px-4 py-3" id="thActions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="productRows"></tbody>
+          </table>
+        </div>
+      </div>
 
-      <h2 class="text-lg font-semibold mb-3">Create Invoice</h2>
-    
-      <!-- Customer Info -->
-      <div class="grid sm:grid-cols-5 gap-3 mb-4">
-        <label class="block sm:col-span-2">
-          <span class="text-sm">Customer Name</span>
-          <input id="customerName" class="mt-1 w-full rounded-xl border px-3 py-2" placeholder="e.g. Zakariye Salah" />
-        </label>
-        <label class="block sm:col-span-2">
-          <span class="text-sm">Customer Phone</span>
-          <input id="customerPhone" class="mt-1 w-full rounded-xl border px-3 py-2" placeholder="e.g. 617125558" />
-        </label>
+      <!-- Product cards (mobile) -->
+      <div id="productCards" class="grid grid-cols-2 gap-2"></div>
+    </main>
+
+    <!-- Add some padding at the bottom so content isn't hidden -->
+<div class="pb-16"></div>
+
+<!-- FontAwesome CDN (for icons) -->
+  </div>
+
+  <!-- Add Product Modal -->
+  <div id="productModal" class="hidden fixed inset-0 z-50">
+    <!-- backdrop -->
+    <div id="productModalBackdrop" class="absolute inset-0 bg-black/40"></div>
+    <!-- dialog -->
+    <div id="productDialog"
+         class="relative max-w-md w-[92%] sm:w-[420px] mx-auto mt-20 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 id="modalTitle" class="text-lg font-semibold">Add Product</h3>
+        <button id="closeModal" class="text-gray-500 hover:text-gray-800 dark:hover:text-gray-200">
+          <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+      </div>
+
+      <form id="productForm" class="space-y-3">
         <label class="block">
-          <span class="text-sm">Invoice Date</span>
-          <input id="invoiceDate" type="date" class="mt-1 w-full rounded-xl border px-3 py-2" />
+          <span id="lblName" class="text-sm text-gray-600 dark:text-gray-300">Product Name *</span>
+          <input id="productName" class="mt-1 w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. Rice 25kg" required />
         </label>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <label class="block">
+            <span id="lblCost" class="text-sm text-gray-600 dark:text-gray-300">Original Price</span>
+            <input id="productCost" type="number" step="0.01" min="0"
+                   class="mt-1 w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.00" />
+          </label>
+          <label class="block">
+            <span id="lblPrice" class="text-sm text-gray-600 dark:text-gray-300">Price *</span>
+            <input id="productPrice" type="number" step="0.01" min="0"
+                   class="mt-1 w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.00" required />
+          </label>
+          <label class="block">
+            <span id="lblQty" class="text-sm text-gray-600 dark:text-gray-300">Quantity *</span>
+            <input id="productQty" type="number" step="1" min="0"
+                   class="mt-1 w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0" required />
+          </label>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" id="cancelModal"
+                  class="px-4 py-2 rounded-xl bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600">
+            Cancel
+          </button>
+          <button type="submit" id="saveProductBtn"
+                  class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
+            Save Product
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+ 
+  </div>
+
+  <!-- ================= REPORTS SECTION (UPDATED: unique IDs to avoid collisions) ================= -->
+<div id="reportsSection" class="hidden">
+  <div class="max-w-6xl mx-auto p-6">
+    <header class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold">Reports</h1>
+        <p class="text-sm text-gray-600">Centralized sales records — live & exportable</p>
       </div>
-    
-      <!-- Invoice Items -->
-      <div id="invoiceItemsContainer" class="mb-3">
-        <!-- Item rows will appear here -->
+      <div class="flex items-center gap-2">
+        <button id="reportsExportPdf" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          <i class="fa-solid fa-file-pdf"></i> Export PDF
+        </button>
+        <button id="reportsDeleteAll" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+          <i class="fa-solid fa-trash"></i> Delete All
+        </button>
       </div>
-      <button id="addItemBtn" class="mb-3 inline-block rounded-xl bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">+ Add Item</button>
-    
-      <div class="grid sm:grid-cols-2 gap-3 mb-3">
-        <label>
-          <span class="text-sm">Total Amount</span>
-          <input id="amount" type="number" step="0.01" class="mt-1 w-full rounded-xl border px-3 py-2" placeholder="0" readonly />
-        </label>
-        <label>
-          <span class="text-sm">Amount Paid</span>
-          <input id="paid" type="number" step="0.01" class="mt-1 w-full rounded-xl border px-3 py-2" placeholder="0" />
-        </label>
-        <label>
-          <span class="text-sm">Status</span>
-          <select id="status" class="mt-1 w-full rounded-xl border px-3 py-2">
-            <option value="unpaid">Unpaid</option>
-            <option value="paid">Paid</option>
+    </header>
+
+    <!-- controls -->
+    <div class="bg-white p-4 rounded-lg shadow mb-4">
+      <div class="flex flex-wrap gap-3 items-center">
+        <label class="flex items-center gap-2">
+          <span class="text-sm font-medium">Filter:</span>
+          <select id="reportsTimeFilter" class="border rounded px-3 py-2">
+            <option value="all">All time</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Last 7 days</option>
+            <option value="monthly">This month</option>
+            <option value="yearly">This year</option>
           </select>
         </label>
+
+        <label class="flex items-center gap-2">
+          <span class="text-sm font-medium">Search:</span>
+          <input id="reportsSearchInput" type="search" placeholder="Product or customer..." class="border rounded px-3 py-2" />
+        </label>
+
+        <div class="ml-auto flex items-center gap-4">
+          <div class="text-sm">
+            <div>Total Items: <span id="reportsTotalItems" class="font-semibold">0</span></div>
+            <div>Total Sales: <span id="reportsTotalSales" class="font-semibold">0.00</span></div>
+          </div>
+        </div>
       </div>
-    
-      <button id="saveInvoiceBtn" class="rounded-xl bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 w-full">Save Invoice</button>
-      <p id="formMsg" class="hidden mt-3 text-red-600 text-sm"></p>
-    </section>
-    
-<!-- INVOICES LIST -->
-<section class="bg-white rounded-2xl shadow p-4 sm:p-6">
-<!-- Header: Title + Filters + Buttons -->
-<div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-  <h2 id="invoicesTitle" class="text-lg font-semibold mr-3">Invoices</h2>
+    </div>
 
-  <div class="flex flex-wrap items-center gap-2 flex-1 min-w-[250px]">
-    <button id="clearPaidBtn" class="bg-red-600 text-white px-3 py-2 rounded whitespace-nowrap">Clear Paid</button>
+    <!-- report content (export target) -->
+    <div id="reportsReportContent" class="bg-white rounded-lg shadow p-4">
+      <div class="overflow-x-auto">
+        <table class="w-full table-auto" id="reportsTable">
+          <thead>
+            <tr class="text-left text-sm text-gray-600 border-b">
+              <th class="p-2">#</th>
+              <th class="p-2">Products</th>
+              <th class="p-2">Qty</th>
+              <th class="p-2">Total</th>
+              <th class="p-2">Paid</th>
+              <th class="p-2">Due</th>
+              <th class="p-2">Status</th>
+              <th class="p-2">Customer</th>
+              <th class="p-2">Phone</th>
+              <th class="p-2">Timestamp</th>
+              <th class="p-2 no-print">Actions</th>
+            </tr>
+          </thead>
+          
+          <tbody id="reportsRows"></tbody>
+        </table>
+      </div>
+    </div>
 
-    <select id="filterStatus" class="rounded-xl border px-3 py-2 whitespace-nowrap">
-      <option value="all">All</option>
-      <option value="paid">Paid</option>
-      <option value="unpaid">Unpaid</option>
-    </select>
+    <p id="reportsEmptyMsg" class="text-center text-gray-500 mt-4 hidden">No reports to show.</p>
+  </div>
 
-    <input id="searchName" class="rounded-xl border px-3 py-2 flex-1 min-w-[120px]" placeholder="Search by name..." />
+  <!-- confirm delete all modal (simple) -->
+  <div id="reportsConfirmDeleteAll" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/50"></div>
+    <div class="bg-white p-6 rounded shadow z-10 w-96">
+      <h3 class="text-lg font-semibold mb-3">Delete all reports?</h3>
+      <p class="mb-4">This will permanently remove all report records for this store.</p>
+      <div class="flex justify-end gap-2">
+        <button id="reportsCancelDeleteAll" class="px-3 py-2 rounded bg-gray-200">Cancel</button>
+        <button id="reportsConfirmDeleteAllBtn" class="px-3 py-2 rounded bg-red-600 text-white">Delete All</button>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- Reminder Buttons -->
-<div class="flex flex-wrap items-center gap-2 mb-4">
-  <select id="reminderMethod" class="border rounded px-2 py-1 whitespace-nowrap">
-    <option value="wa">WhatsApp</option>
-    <option value="sms">SMS</option>
-  </select>
-  <button id="sendAllReminders" class="bg-purple-600 text-white px-3 py-2 rounded whitespace-nowrap">
-    Send All Reminders
-  </button>
+
+</div> <!-- end dashboardSection -->
+
+<!-- ================= BOTTOM NAVIGATION ================= -->
+<div class="flex justify-around mb-4 max-w-6xl mx-auto">
+  <button class="navBtn bg-gray-200 p-2 rounded" data-target="dashboardContent">Dashboard</button>
+  <button class="navBtn bg-gray-200 p-2 rounded" data-target="invoicesSection">Invoices</button>
+  <button class="navBtn bg-gray-200 p-2 rounded" data-target="productsSection">Products</button>
+  <button class="navBtn bg-gray-200 p-2 rounded" data-target="reportsSection">Reports</button>
 </div>
 
-<div class="overflow-x-auto">
-    <table class="w-full text-left border-collapse">
-      <thead class="hidden sm:table-header-group">
-        <tr>
-          <th class="p-2 font-medium text-blue-600">No</th>
-          <th class="p-2 font-medium text-blue-600">Invoice</th>
-          <th class="p-2 font-medium text-blue-600">Date</th>
-          <th class="p-2 font-medium text-blue-600">Customer</th>
-          <th class="p-2 font-medium text-blue-600">Phone</th>
-          <th class="p-2 font-medium text-blue-600 text-right">Amount</th>
-          <th class="p-2 font-medium text-blue-600 text-right">Paid</th>
-          <th class="p-2 font-medium text-blue-600 text-right">Balance</th>
-          <th class="p-2 font-medium text-blue-600">Status</th>
-          <th class="p-2 font-medium text-blue-600 no-print">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="invoiceRows" class="block sm:table-row-group"></tbody>
-    </table>
-  </div>
-</section>
-
-   
-      
-
-      <p id="emptyState" class="hidden text-center text-gray-500 py-6">No invoices yet.</p>
-    </section>
-  </div>
-
-
-  <!-- Footer -->
+<!-- ================= FOOTER ================= -->
 <footer class="bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-200 px-6 py-6 mt-8 border-t border-gray-300 dark:border-gray-700">
   <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-
-    <!-- Left: Copyright -->
     <div class="text-sm text-gray-600 dark:text-gray-400">
       &copy; 2025 <span class="font-semibold">Zakariye</span>. All rights reserved.
     </div>
-
-    <!-- Right: Social links -->
     <div class="flex gap-4 items-center">
-
-      <!-- Gmail -->
       <a href="mailto:engzaki410@gmail.com" target="_blank" class="hover:text-red-600 transition-colors" title="Email">
         <i class="fa-solid fa-envelope fa-lg"></i>
       </a>
-
-      <!-- WhatsApp -->
       <a href="https://wa.me/252617125558" target="_blank" class="hover:text-green-500 transition-colors" title="WhatsApp">
         <i class="fa-brands fa-whatsapp fa-lg"></i>
       </a>
-
-      <!-- Facebook -->
       <a href="https://www.facebook.com/share/19ayTrQCzP/" target="_blank" class="hover:text-blue-800 transition-colors" title="Facebook">
         <i class="fa-brands fa-facebook fa-lg"></i>
       </a>
-
-      <!-- GitHub -->
       <a href="https://github.com/Zakariye-Salah/" target="_blank" class="hover:text-gray-900 dark:hover:text-white transition-colors" title="GitHub">
         <i class="fa-brands fa-github fa-lg"></i>
       </a>
-
     </div>
   </div>
 </footer>
-
-
-
-<!-- Add jsPDF library (add in your HTML <head> or before your script) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 
 <script>
-// -------------------- LANGUAGE SETUP -------------------- //
-// Default: Somali if first time
-let currentLang = localStorage.getItem("lang") || "som";
-localStorage.setItem("lang", currentLang);
+  /* auth.js - full updated file
+   Features:
+   - invoices/products/reports (from user's app)
+   - settings modal (green cog beside supermarket name)
+   - language switching (English / Somali)
+   - dark mode
+   - sendAllReminders: per-customer modal confirmation + grouping & combined balance
+   - notices management
+   - export only pdf
+*/
 
-// Update button label
-const langBtnEl = document.getElementById("langBtn");
-if (langBtnEl) langBtnEl.innerText = currentLang === "eng" ? "ENG" : "SOM";
+(function(){
 
-// Helper
-function t(key) {
-  return translations[currentLang]?.[key] || key;
-}
+  /* =========================
+     STORAGE KEYS & HELPERS
+     ========================= */
+  const LS_USERS = "supermarket_users";
+  const LS_CURRENT_USER = "currentSupermarket";
+  const LS_INVOICES = "invoices_v1";
+  const LS_PRODUCTS = "products_v1";
+  const LS_REPORTS = "reports_v1";
+  const LS_MSG_TPL = "msg_templates_v1";
+  const LS_NOTICES = "notices_v1";
+  const LS_APP_LANG = "app_lang";
+  const LS_DARK = "app_dark_mode";
 
-// -------------------- TRANSLATIONS -------------------- //
-const translations = {
-  som: {
-    searchPlaceholder: "Raadi Macmiil ama Invoice",
-    filterAll: "Dhammaan",
-    filterPaid: "Bixiyay",
-    filterUnpaid: "Bixinin",
-    emptyState: "Ma jiraan invoices la helay",
-    createInvoice: "Abuur Biil cusub",
-    customerName: "Magaca Macmiilka",
-    customerPhone: "Telefoonka Macmiilka",
-    invoiceDate: "Taariikhda Biilka",
-    totalAmount: "Wadarta Lacagta",
-    amountPaid: "Lacagta La Bixiyay",
-    status: "Xaaladda",
-    no: "No",
-    invoice: "Biilasha",
-    date: "Taariikh",
-    customer: "Macmiil",
-    phone: "Telefoon",
-    amount: "Tiro",
-    paidBtn: "La-Bixiyay",
-    unpaidBtn: "La-Bixinin",
-    addItem: "+ Kudar Shay kale",
-    description: "Sheyga lagatay",
-    balance: "Hadhaaga",
-    actions: "Hawlaha",
-    exportInvoices: "Degso Biilasha",
-    login: "Gali",
-    editUser: "Dib U habeyn",
-    clearPaid: "Tirtir bixiyaasha",
-    sendAllReminders: "Dir Dhammaan Xasuusinta",
-    invoicesTitle: "Biilal",
-    storeLabel: "Dukaanka: {name}",
-    removeItem: 'Tuur Sheyga',
-    saveInvoice: 'Keydi Biilka',
-    invoiceMaker: "Sameeyaha Biilka",
-  },
-  eng: {
-    invoiceMaker: "Invoice Maker",
-    removeItem: 'Remove',
-    saveInvoice: 'Save Invoice',
-    searchPlaceholder: "Search Customer or Invoice",
-    filterAll: "All",
-    filterPaid: "Paid",
-    filterUnpaid: "Unpaid",
-    emptyState: "No invoices found",
-    createInvoice: "Create New Invoice",
-    customerName: "Customer Name",
-    customerPhone: "Customer Phone",
-    invoiceDate: "Invoice Date",
-    totalAmount: "Total Amount",
-    amountPaid: "Amount Paid",
-    status: "Status",
-    no: "No",
-    invoice: "Invoice",
-    date: "Date",
-    customer: "Customer",
-    phone: "Phone",
-    amount: "Amount",
-    paidBtn: "Paid",
-    unpaidBtn: "Unpaid",
-    addItem: "+ Add Item",
-    description: "add Item",
-    balance: "Balance",
-    actions: "Actions",
-    exportInvoices: "Export Invoices",
-    login: "Login",
-    editUser: "Edit User",
-    clearPaid: "Clear Paid",
-    sendAllReminders: "Send All Reminders",
-    invoicesTitle: "Invoices",
-    storeLabel: "Store: {name}"
+  function lsGet(key, fallback=null){
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
   }
-};
-
-// -------------------- STORE & LOGIN -------------------- //
-function updateStoreName(storeName) {
-  const label = t("storeLabel").replace("{name}", storeName);
-  const storeEl = document.getElementById("storeDisplay");
-  if (storeEl) storeEl.innerText = label;
-}
-
-function updateLoginButton() {
-  const loginBtn = document.getElementById("loginbtn");
-  const user = JSON.parse(localStorage.getItem("currentUser"));
-  if (loginBtn) loginBtn.innerText = user ? t("editUser") : t("login");
-}
-
-// -------------------- UI UPDATES -------------------- //
-function updateTableHeaders() {
-  const headers = document.querySelectorAll("table thead th");
-  if (!headers || headers.length < 10) return;
-  headers[0].innerText = t("no");
-  headers[1].innerText = t("invoice");
-  headers[2].innerText = t("date");
-  headers[3].innerText = t("customer");
-  headers[4].innerText = t("phone");
-  headers[5].innerText = t("amount");
-  headers[6].innerText = t("paid");
-  headers[7].innerText = t("balance");
-  headers[8].innerText = t("status");
-  headers[9].innerText = t("actions");
-}
-
-function updateButtonsAndTitles() {
-  // Update main title
-  const mainTitle = document.getElementById("mainTitle");
-  if (mainTitle) mainTitle.innerHTML = `<span>🧾</span> ${t("invoiceMaker")}`;
-
-  // Other buttons and labels
-  const createBtn = document.getElementById("createInvoiceBtn");
-  if (createBtn) createBtn.innerText = t("createInvoice");
-
-  const exportBtn = document.getElementById("exportBtn");
-  if (exportBtn) exportBtn.innerText = t("exportInvoices");
-
-  const loginBtn = document.getElementById("loginbtn");
-  if (loginBtn) updateLoginButton();
-
-  const clearPaidBtn = document.getElementById("clearPaidBtn");
-  if (clearPaidBtn) clearPaidBtn.innerText = t("clearPaid");
-
-  const sendAllBtn = document.getElementById("sendAllReminders");
-  if (sendAllBtn) sendAllBtn.innerText = t("sendAllReminders");
-
-  const invoicesTitle = document.getElementById("invoicesTitle");
-  if (invoicesTitle) invoicesTitle.innerText = t("invoicesTitle");
-
-  const saveInvoiceBtn = document.getElementById("saveInvoiceBtn");
-  if (saveInvoiceBtn) saveInvoiceBtn.innerText = t("saveInvoice");
-
-  document.querySelectorAll(".removeItemBtn").forEach(btn => {
-    btn.innerText = t("removeItem");
-  });
-
-  document.querySelectorAll(".descInput").forEach(inp => {
-    inp.placeholder = t("description");
-  });
-  document.querySelectorAll(".amountInput").forEach(inp => {
-    inp.placeholder = t("amount");
-  });
-}
-
-// -------------------- OTHER TEXTS -------------------- //
-function updateOtherTexts() {
-  const searchInput = document.getElementById("searchName");
-  if (searchInput) searchInput.placeholder = t("searchPlaceholder");
-
-  const filter = document.getElementById("filterStatus");
-  if (filter && filter.options.length >= 3) {
-    filter.options[0].text = t("filterAll");
-    filter.options[1].text = t("filterPaid");
-    filter.options[2].text = t("filterUnpaid");
+  function lsSet(key, val){
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) { console.error("lsSet failed", e); }
   }
 
-  const empty = document.getElementById("emptyState");
-  if (empty) empty.innerText = t("emptyState");
-
-  const customerNameInput = document.getElementById("customerName");
-  if (customerNameInput) customerNameInput.placeholder = t("customerName");
-
-  const customerPhoneInput = document.getElementById("customerPhone");
-  if (customerPhoneInput) customerPhoneInput.placeholder = t("customerPhone");
-
-  const invoiceDateInput = document.getElementById("invoiceDate");
-  if (invoiceDateInput) invoiceDateInput.placeholder = t("invoiceDate");
-
-  const amountInput = document.getElementById("amount");
-  if (amountInput) amountInput.placeholder = t("totalAmount");
-
-  const paidInput = document.getElementById("paid");
-  if (paidInput) paidInput.placeholder = t("amountPaid");
-
-  const statusSelect = document.getElementById("status");
-  if (statusSelect) {
-    for (const opt of statusSelect.options) {
-      if (opt.value === "paid") opt.text = t("filterPaid");
-      if (opt.value === "unpaid") opt.text = t("filterUnpaid");
-    }
-  }
-}
-
-// -------------------- APPLY ALL -------------------- //
-function applyTranslations() {
-  updateOtherTexts();
-  updateTableHeaders();
-  updateButtonsAndTitles();
-
-  // ✅ Use logged in user supermarket name if exists
-  const user = JSON.parse(localStorage.getItem("currentUser"));
-  if (user && user.supermarketName) {
-    updateStoreName(user.supermarketName);
-  } else {
-    updateStoreName(""); // empty if no login
-  }
-
-  updateLoginButton();
-  if (typeof renderInvoices === "function") renderInvoices();
-}
-
-// -------------------- EVENTS -------------------- //
-if (langBtnEl) {
-  langBtnEl.addEventListener("click", () => {
-    currentLang = currentLang === "som" ? "eng" : "som";
-    localStorage.setItem("lang", currentLang);
-    langBtnEl.innerText = currentLang === "eng" ? "ENG" : "SOM";
-    applyTranslations();
-  });
-}
-
-window.addEventListener("DOMContentLoaded", () => {
-  applyTranslations();
-});
-
-
-//////////////////
-
-  
-  window.LS_KEYS = { SETTINGS: 'invoice_settings_v1', INVOICES: 'invoices_v1' };
-
-  
-  
-  const $ = id => document.getElementById(id);
-  const fmt = n => Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-  const todayISO = () => new Date().toISOString().slice(0,10);
-  const genInvoiceNumber = () => {
-    const d = new Date(); const pad = x=>String(x).padStart(2,'0');
-    return `INV-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}-${Math.floor(Math.random()*1000)}`;
-  };
- 
-  const createInvoiceBtn = document.getElementById("createInvoiceBtn");
-const createInvoiceSection = document.getElementById("createInvoiceSection");
-
-// Show the create invoice form
-createInvoiceBtn.addEventListener("click", () => {
-createInvoiceSection.classList.toggle("hidden-section");
-});
-
-
-
-
-  // Load invoices
-  function load() {
-  // Get store display element
-  const storeEl = document.getElementById('storeDisplay');
-
-  // Show store name if user logged in
-  if (storeEl) {
-    if (currentUser && currentUser.supermarketName) {
-      storeEl.textContent = `Store: ${currentUser.supermarketName}`;
-    } else {
-      storeEl.textContent = "Store: Unknown";
-    }
-  }
-
-  // Load invoices from localStorage safely
-  try {
-    invoices = JSON.parse(localStorage.getItem(LS_INVOICES)) || [];
-  } catch (e) {
-    invoices = [];
-    console.error("❌ Error loading invoices:", e);
-  }
-
-  // Set today as default date
-  const dateInput = document.getElementById('invoiceDate');
-  if (dateInput) {
-    dateInput.value = todayISO();
-  }
-
-  // Render invoices on page
-  renderInvoices();
-}
-
-//------------------ LOCAL STORAGE KEYS --------------------
-const LS_CURRENT_USER = "currentUser";
-const LS_INVOICES = "invoices";
-
-// -------------------- GLOBALS --------------------
-let currentUser = JSON.parse(localStorage.getItem(LS_CURRENT_USER)) || null;
-let invoices = JSON.parse(localStorage.getItem(LS_INVOICES)) || [];
-
-// -------------------- HELPER --------------------
-
-function requireLogin() {
-  if (!currentUser) {
-    $("loginModal").classList.remove('hidden');
-    $("loginModal").classList.add('flex');
-    return false;
-  }
-  return true;
-}
-
-// -------------------- LOGIN MODAL --------------------
-$("loginbtn").addEventListener("click", () => { 
-  $("loginModal").classList.remove('hidden');
-  $("loginModal").classList.add('flex');
-
-  if(currentUser){
-    $("modalTitle").textContent = "Edit Supermarket Details";
-    $("supermarketName").value = currentUser.supermarketName;
-    $("supermarketAddress").value = currentUser.supermarketAddress;
-    $("supermarketGmail").value = currentUser.supermarketGmail || "";
-    $("supermarketPhone").value = currentUser.supermarketPhone;
-    $("countryCode").value = currentUser.countryCode || "+252";
-  } else {
-    $("modalTitle").textContent = "Supermarket Login";
-    $("supermarketName").value = "";
-    $("supermarketAddress").value = "";
-    $("supermarketGmail").value = "";
-    $("supermarketPhone").value = "";
-    $("countryCode").value = "+252";
-  }
-});
-
-$("cancelLogin").addEventListener("click", () => {
-  $("loginModal").classList.add('hidden');
-  $("loginModal").classList.remove('flex');
-});
-
-// -------------------- AUTO LOAD --------------------
-window.addEventListener("DOMContentLoaded", () => {
-  if (currentUser) {
-    document.getElementById("storeDisplayDesktop").textContent = `Store: ${currentUser.supermarketName}`;
-    document.getElementById("storeDisplayMobile").textContent = `Store: ${currentUser.supermarketName}`;
-    document.getElementById("loginbtn").textContent = "Edit User";
-    load();
-  } else {
-    // If no user, force login on page load
-    $("loginModal").classList.remove('hidden');
-    $("loginModal").classList.add('flex');
-  }
-});
-
-// -------------------- SAVE LOGIN -------------------- //
-$("saveLogin").addEventListener("click", () => {
-  // Get values
-  const supermarketName = $("supermarketName").value.trim();
-  const supermarketAddress = $("supermarketAddress").value.trim();
-  const supermarketGmail = $("supermarketGmail").value.trim();
-  const supermarketPhone = $("supermarketPhone").value.trim();
-  const countryCode = $("countryCode").value.trim() || "+252";
-
-  if (!supermarketName) {
-    alert("Supermarket name is required!");
-    return;
-  }
-
-  // Save to localStorage
-  const user = {
-    supermarketName,
-    supermarketAddress,
-    supermarketGmail,
-    supermarketPhone,
-    countryCode
-  };
-  localStorage.setItem("currentUser", JSON.stringify(user));
-  currentUser = user;
-
-  // Update UI
-  const desktopStore = document.getElementById("storeDisplayDesktop");
-  const mobileStore = document.getElementById("storeDisplayMobile");
-  if (desktopStore) desktopStore.textContent = `Store: ${supermarketName}`;
-  if (mobileStore) mobileStore.textContent = `Store: ${supermarketName}`;
-
-  $("loginbtn").textContent = "Edit User";
-
-  // Hide modal
-  $("loginModal").classList.add("hidden");
-  $("loginModal").classList.remove("flex");
-});
-
-
-//✅ Update Auto Load section to refresh from storage
-window.addEventListener("DOMContentLoaded", () => {
-  const user = JSON.parse(localStorage.getItem("currentUser"));
-  if (user) {
-    currentUser = user;
-    document.getElementById("storeDisplayDesktop").textContent = `Store: ${user.supermarketName}`;
-    document.getElementById("storeDisplayMobile").textContent = `Store: ${user.supermarketName}`;
-    $("loginbtn").textContent = "Edit User";
-    load();
-  } else {
-    $("loginModal").classList.remove("hidden");
-    $("loginModal").classList.add("flex");
-  }
-});
-
-
-///humberger
-
-const mobileBtn = document.getElementById('mobileMenuBtn');
-const mobileMenu = document.getElementById('mobileMenu');
-const hamburger = document.getElementById('hamburger');
-const hamburger2 = document.getElementById('hamburger2');
-const hamburger3 = document.getElementById('hamburger3');
-
-// Open/close mobile menu
-mobileBtn.addEventListener('click', () => {
-  if (mobileMenu.classList.contains('opacity-0')) {
-    // Open menu
-    mobileMenu.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
-    mobileMenu.classList.add('opacity-100', 'scale-100', 'pointer-events-auto');
-
-    // Set menu top dynamically 20px below button
-    const rect = mobileBtn.getBoundingClientRect();
-    mobileMenu.style.top = `${rect.bottom + 20}px`; 
-
-    // Spring animation (slide down with subtle bounce)
-    mobileMenu.animate([
-      { transform: 'translateY(-10px)', opacity: 0.7 },
-      { transform: 'translateY(0)', opacity: 1 },
-      { transform: 'translateY(-5px)', opacity: 1 },
-      { transform: 'translateY(0)', opacity: 1 }
-    ], {
-      duration: 400,
-      easing: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)'
+  /* Ensure templates and notices seeded */
+  if (!lsGet(LS_MSG_TPL)) {
+    lsSet(LS_MSG_TPL, {
+      reminder_wa: "Xasuusin: {customer}, lacagta lagugu leeyahay waa: {balance}.\nFadlan iska bixi dukaanka {store} ({phone}).",
+      reminder_sms: "Xasuusin: {customer}, lacagta lagugu leeyahay waa: {balance}. Fadlan iska bixi dukaanka {store} ({phone})."
     });
-
-    // Hamburger to X
-    hamburger.style.transform = 'rotate(45deg) translate(5px, 5px)';
-    hamburger2.style.opacity = '0';
-    hamburger3.style.transform = 'rotate(-45deg) translate(5px, -5px)';
-  } else {
-    // Close menu
-    mobileMenu.classList.remove('opacity-100', 'scale-100', 'pointer-events-auto');
-    mobileMenu.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
-
-    // Reset hamburger
-    hamburger.style.transform = 'rotate(0) translate(0, 0)';
-    hamburger2.style.opacity = '1';
-    hamburger3.style.transform = 'rotate(0) translate(0, 0)';
   }
-});
-
-
-// Forward clicks from mobile menu to desktop buttons
-document.getElementById('langBtnMobile').addEventListener('click', () => document.getElementById('langBtn').click());
-document.getElementById('exportBtnMobile').addEventListener('click', () => document.getElementById('exportBtn').click());
-document.getElementById('loginbtnMobile').addEventListener('click', () => document.getElementById('loginbtn').click());
-document.getElementById('noticeBtnMobile').addEventListener('click', () => document.getElementById('noticeBtn').click());
-
-// ✅ New: open Help modal from mobile menu
-document.getElementById('helpBtnMobile').addEventListener('click', () => {
-  populateHelp();
-  helpModal.classList.remove('hidden');
-  // close mobile menu after click
-  mobileMenu.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
-});
-
-// ✅ Sync store name for desktop & mobile
-function updateStoreName(name) {
-  document.getElementById('storeDisplayDesktop').textContent = name;
-  document.getElementById('storeDisplayMobile').textContent = name;
-}
-
-// Example usage
-updateStoreName("");
-
-
-//help model
-// Elements
-const helpModal = document.getElementById('helpModal');
-const helpTitle = document.getElementById('helpTitle');
-const helpList = document.getElementById('helpList');
-const closeHelpModal = document.getElementById('closeHelpModal');
-const langBtn = document.getElementById('langBtn');
-
-// Content
-const helpContent = {
-  som: {
-    title: "Caawimo / Help",
-    items: [
-      { icon: '<i class="fa-brands fa-whatsapp text-green-600"></i>', text: "WhatsApp Button: U dir invoice macaamiisha adigoo isticmaalaya WhatsApp." },
-      { icon: '<i class="fa-solid fa-comment text-blue-600"></i>', text: "SMS Button: U dir invoice SMS ahaan macaamiisha." },
-      { icon: '<i class="fa-solid fa-phone text-indigo-700"></i>', text: "Phone Button: Wac macaamiisha adigoo gujinaya button-ka." },
-      { icon: '<i class="fa-solid fa-print text-gray-700"></i>', text: "Print Button: Daabac invoice-ka." },
-      { icon: '<i class="fa-solid fa-check text-green-700"></i>', text: "Paid Button: Calaamadee invoice-ka inuu bixiyay." },
-      { icon: '<i class="fa-solid fa-xmark text-red-600"></i>', text: "Unpaid Button: Calaamadee invoice-ka inuu bixinin." },
-      { icon: '<i class="fa-solid fa-copy text-purple-600"></i>', text: "Duplicate Button: Nuqul ka samee invoice jira." },
-      { icon: '<i class="fa-solid fa-pen-to-square text-yellow-500"></i>', text: "Edit Button: Wax ka beddel invoice-ka." },
-      { icon: '<i class="fa-solid fa-trash text-rose-600"></i>', text: "Delete Button: Tirtir invoice-ka." },
-      { icon: '<i class="fa-solid fa-eraser text-gray-800"></i>', text: "Clear Paid: Tirtir calaamadaha bixinta ee dhammaan invoices-ka paid." },
-      { icon: '<i class="fa-solid fa-bell text-blue-700"></i>', text: "Send All Reminders: Dir dhammaan xusuusinta lacag bixinta invoices-ka unpaid." },
-      { icon: '<i class="fa-solid fa-circle-info text-gray-900"></i>', text: "General Tips: Hubi internet-ka, login, localStorage, iyo screen size-ka haddii wax shaqayn waayaan." }
-    ]
-  },
-  eng: {
-    title: "Help",
-    items: [
-      { icon: '<i class="fa-brands fa-whatsapp text-green-600"></i>', text: "WhatsApp Button: Send invoice to customer using WhatsApp." },
-      { icon: '<i class="fa-solid fa-comment text-blue-600"></i>', text: "SMS Button: Send invoice via SMS." },
-      { icon: '<i class="fa-solid fa-phone text-indigo-700"></i>', text: "Phone Button: Call the customer." },
-      { icon: '<i class="fa-solid fa-print text-gray-700"></i>', text: "Print Button: Print the invoice." },
-      { icon: '<i class="fa-solid fa-check text-green-700"></i>', text: "Paid Button: Mark invoice as paid." },
-      { icon: '<i class="fa-solid fa-xmark text-red-600"></i>', text: "Unpaid Button: Mark invoice as unpaid." },
-      { icon: '<i class="fa-solid fa-copy text-purple-600"></i>', text: "Duplicate Button: Duplicate the invoice." },
-      { icon: '<i class="fa-solid fa-pen-to-square text-yellow-500"></i>', text: "Edit Button: Edit invoice details." },
-      { icon: '<i class="fa-solid fa-trash text-rose-600"></i>', text: "Delete Button: Delete invoice." },
-      { icon: '<i class="fa-solid fa-eraser text-gray-800"></i>', text: "Clear Paid: Clear all paid invoice marks." },
-      { icon: '<i class="fa-solid fa-bell text-blue-700"></i>', text: "Send All Reminders: Send reminders for unpaid invoices." },
-      { icon: '<i class="fa-solid fa-circle-info text-gray-900"></i>', text: "General Tips: Check your internet, login, localStorage, and screen size if issues occur." }
-    ]
-  }
-};
-
-// Populate function with hover animation
-function populateHelp() {
-  const lang = localStorage.getItem('lang') || 'som';
-  const content = helpContent[lang] || helpContent['eng'];
-
-  helpTitle.innerHTML = content.title;
-  helpList.innerHTML = '';
-
-  content.items.forEach(item => {
-    const li = document.createElement('li');
-    li.className = "flex items-center gap-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 cursor-pointer group";
-    li.innerHTML = `
-      <span class="text-xl group-hover:scale-110 transition-transform duration-300">${item.icon}</span>
-      <span>${item.text}</span>
-    `;
-    helpList.appendChild(li);
-  });
-}
-
-// Open/close modal
-document.getElementById('helpBtn')?.addEventListener('click', () => {
-  populateHelp();
-  helpModal.classList.remove('hidden');
-});
-closeHelpModal.addEventListener('click', () => helpModal.classList.add('hidden'));
-// Language switch
-langBtn.addEventListener('click', () => {
-  const current = localStorage.getItem('lang') || 'som';
-  const nextLang = current === 'som' ? 'eng' : 'som';
-  localStorage.setItem('lang', nextLang);
-  updateLangBtn(nextLang);
-  populateHelp(); // Refresh modal if open
-});
-
-// Update lang button label
-function updateLangBtn(lang) {
-  langBtn.textContent = lang.toUpperCase(); // shows SOM / ENG
-  document.getElementById("langBtnMobile").textContent = lang.toUpperCase();
-}
-
-// Init lang on load
-window.addEventListener("DOMContentLoaded", () => {
-  const lang = localStorage.getItem('lang') || 'som';
-  updateLangBtn(lang);
-});
-
-
-
-
-// Notice modal
-const noticeModal = document.getElementById('noticeModal');
-const noticeBtn = document.getElementById('noticeBtn');
-const closeNoticeModal = document.getElementById('closeNoticeModal');
-
-noticeBtn.addEventListener('click', () => {
-  noticeModal.classList.remove('hidden');
-  noticeModal.classList.add('flex');
-});
-
-closeNoticeModal.addEventListener('click', () => {
-  noticeModal.classList.add('hidden');
-  noticeModal.classList.remove('flex');
-});
-
-
-
-// -------------------- PROTECT INPUTS --------------------
-const allInputs = document.querySelectorAll('input, textarea, select');
-allInputs.forEach(input => {
-  input.addEventListener('focus', () => {
-    requireLogin(); // force login when focusing input
-  });
-});
-
-// -------------------- EXAMPLE REMINDERS --------------------
-function sendReminder(inv) {
-  if(!requireLogin()) return;
-
-  const phone = normalizePhone(inv.phone);
-  const method = $("reminderMethod").value;
-  const message = `Reminder: ${inv.name}, balance: $${inv.balance}`;
-  const url = method === "wa" 
-    ? `https://wa.me/${phone.replace("+","")}?text=${encodeURIComponent(message)}`
-    : `sms:${phone}?body=${encodeURIComponent(message)}`;
-  
-  window.open(url, "_blank");
-}
-
-// Add requireLogin() to other functions like printing, deleting, etc.
-
-  // VALIDATE INVOICE
-  function validateInvoiceForm() {
-    const name = $('customerName').value.trim();
-    const phone = $('customerPhone').value.trim();
-    const amount = parseFloat($('amount').value)||0;
-    const paid = parseFloat($('paid').value)||0;
-    const formMsg = $('formMsg'); formMsg.classList.add('hidden'); formMsg.textContent='';
-  
-    if(!name){formMsg.textContent='Customer name required'; formMsg.classList.remove('hidden'); return false;}
-    if(!phone){formMsg.textContent='Customer phone required'; formMsg.classList.remove('hidden'); return false;}
-    if(amount<=0){formMsg.textContent='Total amount > 0'; formMsg.classList.remove('hidden'); return false;}
-    if(paid<0){formMsg.textContent='Paid >= 0'; formMsg.classList.remove('hidden'); return false;}
-    if(paid>amount){formMsg.textContent='Paid <= Total'; formMsg.classList.remove('hidden'); return false;}
-    return true;
+  if (!lsGet(LS_NOTICES)) {
+    lsSet(LS_NOTICES, [
+      { id: `N-${Date.now()}`, title: "Welcome", body: "Welcome to the supermarket invoicing app.", pinned: true, created: Date.now() }
+    ]);
   }
 
+  /* Small helpers */
+  function fmtMoney(n){ const num = Number(n)||0; return num.toFixed(2); }
+  function fmtDate(d){ const date = d ? new Date(d) : new Date(); const yyyy = date.getFullYear(); const mm = String(date.getMonth()+1).padStart(2,'0'); const dd = String(date.getDate()).padStart(2,'0'); return `${yyyy}-${mm}-${dd}`; }
+  function fmtDateTime(ts){ const d = new Date(ts); if (isNaN(d)) return String(ts); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; }
+  function escapeHtml(s){ if (s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function cleanPhone(phone){ if (!phone) return ''; let p = String(phone).replace(/\D/g,''); if (!p) return ''; if (p.startsWith('252')) return p; if (p.startsWith('0')) p = p.slice(1); if (!p.startsWith('252')) p = '252' + p; return p; }
 
+  /* =========================
+     STORAGE READ/WRITE WRAPPERS
+     ========================= */
+  function getUsers(){ return lsGet(LS_USERS, []); }
+  function saveUsers(u){ lsSet(LS_USERS, u); }
+  function setCurrentUser(u){ lsSet(LS_CURRENT_USER, u); }
+  function getCurrentUser(){ return lsGet(LS_CURRENT_USER, null); }
+  function clearCurrentUser(){ localStorage.removeItem(LS_CURRENT_USER); }
 
+  function getAllInvoices(){ return lsGet(LS_INVOICES, []); }
+  function saveAllInvoices(arr){ lsSet(LS_INVOICES, arr); }
+  function getStoreInvoices(storeName){ if (!storeName) return []; return getAllInvoices().filter(i => String(i.store||'').toLowerCase() === String(storeName||'').toLowerCase()); }
 
- 
+  function getAllProducts(){ return lsGet(LS_PRODUCTS, []); }
+  function saveAllProducts(arr){ lsSet(LS_PRODUCTS, arr); }
+  function getStoreProducts(storeName){ if (!storeName) return []; return getAllProducts().filter(p => String(p.store||'').toLowerCase() === String(storeName||'').toLowerCase()); }
 
+  function getAllReports(){ return lsGet(LS_REPORTS, []); }
+  function saveAllReports(arr){ lsSet(LS_REPORTS, arr); }
 
-function getTranslatedStatus(status) {
-  if (status === "paid") return t("filterPaid");   // "Bixiyay" in Somali
-  if (status === "unpaid") return t("filterUnpaid"); // "Bixinin" in Somali
-  return status;
-}
-
-function renderInvoices() {
-  const tbody = $('invoiceRows');
-  tbody.innerHTML = '';
-
-  const allInvoices = JSON.parse(localStorage.getItem(LS_INVOICES)) || [];
-  const filter = $('filterStatus').value;
-  const query = $('searchName').value.trim().toLowerCase();
-
-  if (!Array.isArray(allInvoices)) return;
-
-  const list = allInvoices.filter(inv => {
-    if (!inv || !currentUser) return false;
-    if (inv.supermarketName !== currentUser.supermarketName) return false;
-    const okStatus = filter === 'all' || (inv.status || '').toLowerCase() === filter;
-    const okSearch =
-      !query ||
-      (inv.name || '').toLowerCase().includes(query) ||
-      (inv.invoiceNumber || '').toLowerCase().includes(query);
-    return okStatus && okSearch;
-  });
-
-  if ($('emptyState')) {
-    $('emptyState').classList.toggle('hidden', list.length !== 0);
-  }
-
-  const icons = {
-    whatsapp: `<i class="fa-brands fa-whatsapp"></i>`,
-    sms: `<i class="fa-solid fa-comment"></i>`,
-    phone: `<i class="fa-solid fa-phone"></i>`,
-    print: `<i class="fa-solid fa-print"></i>`,
-    paid: `<i class="fa-solid fa-check"></i>`,
-    unpaid: `<i class="fa-solid fa-xmark"></i>`,
-    duplicate: `<i class="fa-solid fa-copy"></i>`,
-    edit: `<i class="fa-solid fa-pen-to-square"></i>`,
-    delete: `<i class="fa-solid fa-trash"></i>`
+  /* =========================
+     TRANSLATIONS
+     ========================= */
+  const I18N = {
+    en: {
+      dashboard: "Dashboard",
+      logout: "Logout",
+      reportsSummary: "Reports Summary",
+      totalInvoices: "Total Invoices",
+      totalProducts: "Total Products",
+      totalSales: "Total Sales",
+      createInvoice: "+ Create Invoice",
+      addItem: "+ Add Item",
+      totalAmount: "Total Amount",
+      amountPaid: "Amount Paid",
+      status: "Status",
+      saveInvoice: "Save Invoice",
+      invoices: "Invoices",
+      clearPaid: "Clear Paid",
+      searchPlaceholder: "Search by name...",
+      sendAllReminders: "Send All Reminders",
+      products: "Products",
+      addProduct: "Add Product",
+      sell: "Sell",
+      buyRecord: "Buy & Record Invoice",
+      buyOnly: "Buy Only",
+      settings: "Settings",
+      notices: "Notices",
+      help: "Help & Guidance",
+      export: "Export / Download",
+      language: "Language",
+      editUser: "Edit User",
+      messages: "WhatsApp / SMS Templates",
+      save: "Save",
+      cancel: "Cancel",
+      delete: "Delete",
+      welcomeNotice: "Welcome to the invoicing system."
+    },
+    so: {
+      dashboard: "Dashboard",
+      logout: "Ka Bax",
+      reportsSummary: "Kooban Warbixinno",
+      totalInvoices: "Waraaqaha Guud",
+      totalProducts: "Alaabooyinka",
+      totalSales: "Iibka Guud",
+      createInvoice: "+ Ku dar Invoice",
+      addItem: "+ Ku dar Alaab",
+      totalAmount: "Wadarta",
+      amountPaid: "Lacagta la bixiyey",
+      status: "Xaalad",
+      saveInvoice: "Kaydi Invoice",
+      invoices: "Invoice-yada",
+      clearPaid: "Tirtir kuwa bixiyey",
+      searchPlaceholder: "Raadi magac...",
+      sendAllReminders: "Dir Dhammaan Xasuusin",
+      products: "Alaabooyinka",
+      addProduct: "Ku dar Alaab",
+      sell: "Iib",
+      buyRecord: "Iib & Diiwaan",
+      buyOnly: "Keliya Diiwaan",
+      settings: "Dejinta",
+      notices: "Ogeysiisyada",
+      help: "Caawinaad",
+      export: "Dhoofin / Soo Degsasho",
+      language: "Luqad",
+      editUser: "Tafatir Isticmaalaha",
+      messages: "Template-yada WhatsApp / SMS",
+      save: "Kaydi",
+      cancel: "Jooji",
+      delete: "Tirtir",
+      welcomeNotice: "Ku soo dhawoow nidaamka invoices-ka."
+    }
   };
 
-  const lang = localStorage.getItem('lang') || 'som';
-  const labels = {
-    date: lang === 'som' ? 'Taariikh' : 'Date',
-    customer: lang === 'som' ? 'Macmiil' : 'Customer',
-    phone: lang === 'som' ? 'Telefoon' : 'Phone',
-    amount: lang === 'som' ? 'Qiime' : 'Amount',
-    paidLabel: lang === 'som' ? 'bixiyay' : 'Paid',
-    balanceLabel: lang === 'som' ? 'Hadhaaga' : 'Balance',
-    paidBtn: lang === 'som' ? 'Bixiyay' : 'Paid',
-    unpaidBtn: lang === 'som' ? 'Bixinin' : 'Unpaid'
-  };
-
-  list.forEach((inv, index) => {
-    if (!inv) return;
-
-    const status = (inv.status || 'unpaid').toLowerCase();
-    const paid = inv.paid != null ? inv.paid : 0;
-    const balance = inv.balance != null ? inv.balance : 0;
-    const amount = inv.amount != null ? inv.amount : 0;
-
-    const rowBg = status === 'paid'
-      ? 'bg-gray-50 dark:bg-gray-700'
-      : 'bg-gray-200 dark:bg-gray-600';
-
-    const statusClasses = status === 'paid'
-      ? 'bg-gray-200 text-white dark:bg-gray-600 dark:text-white'
-      : 'bg-red-500 text-white dark:bg-red-700 dark:text-white';
-
-    const statusText = status === 'paid' ? labels.paidBtn : labels.unpaidBtn;
-
-    const tr = document.createElement('tr');
-    tr.className = rowBg;
-
-    tr.innerHTML = `
-      <!-- Desktop -->
-      <td class="hidden sm:table-cell p-2 text-white">${index + 1}</td>
-      <td class="hidden sm:table-cell p-2 text-white">${inv.invoiceNumber || '-'}</td>
-      <td class="hidden sm:table-cell p-2 text-white">${inv.date || '-'}</td>
-      <td class="hidden sm:table-cell p-2 text-white">${inv.name || '-'}</td>
-      <td class="hidden sm:table-cell p-2 text-white">${inv.phone || '-'}</td>
-      <td class="hidden sm:table-cell p-2 text-white">$${fmt(amount)}</td>
-      <td class="hidden sm:table-cell p-2 text-white">$${fmt(paid)}</td>
-      <td class="hidden sm:table-cell p-2 text-white">$${fmt(balance)}</td>
-      <td class="hidden sm:table-cell p-2">
-        <span class="inline-flex items-center rounded-full px-2 py-1 text-sm font-semibold ${statusClasses}">
-          ${statusText}
-        </span>
-      </td>
-      <td class="hidden sm:table-cell p-2 no-print">
-        <div class="flex flex-wrap gap-2">
-          <button onclick="sendWhatsApp(${inv.id})" class="bg-green-600 hover:bg-green-700 text-white p-1 sm:p-2 rounded">${icons.whatsapp}</button>
-          <button onclick="sendSMS(${inv.id})" class="bg-blue-600 hover:bg-blue-700 text-white p-1 sm:p-2 rounded">${icons.sms}</button>
-          <button onclick="callCustomer('${inv.phone}')" class="bg-indigo-600 hover:bg-indigo-700 text-white p-1 sm:p-2 rounded">${icons.phone}</button>
-          <button onclick="printInvoiceById(${inv.id})" class="bg-gray-700 hover:bg-gray-800 text-white p-1 sm:p-2 rounded">${icons.print}</button>
-          ${
-            status === 'paid'
-              ? `<button onclick="markUnpaid(${inv.id})" class="bg-gray-300 hover:bg-gray-400 text-gray-900 p-1 sm:p-2 rounded">${icons.unpaid}</button>`
-              : `<button onclick="markPaid(${inv.id})" class="bg-gray-200 hover:bg-gray-300 text-gray-800 p-1 sm:p-2 rounded">${icons.paid}</button>`
-          }
-          <button onclick="duplicateInvoice(${inv.id})" class="bg-purple-600 hover:bg-purple-700 text-white p-1 sm:p-2 rounded">${icons.duplicate}</button>
-          <button onclick="editInvoice(${inv.id})" class="bg-yellow-500 text-white p-1 sm:p-2 rounded">${icons.edit}</button>
-          <button onclick="deleteInvoice(${inv.id})" class="bg-rose-600 hover:bg-rose-700 text-white p-1 sm:p-2 rounded">${icons.delete}</button>
-        </div>
-      </td>
-
-      <!-- Mobile Card -->
-      <td class="sm:hidden p-2">
-        <div class="bg-gray-800 text-white shadow-lg rounded-lg p-4 mb-3 w-full">
-          <div class="flex justify-between items-center mb-2">
-            <div class="font-bold text-lg">#${index + 1} - ${inv.invoiceNumber || '-'}</div>
-            <span class="inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${statusClasses}">${statusText}</span>
-          </div>
-          <div class="text-white text-sm mb-1"><strong>${labels.date}:</strong> ${inv.date || '-'}</div>
-          <div class="text-white text-sm mb-1"><strong>${labels.customer}:</strong> ${inv.name || '-'}</div>
-          <div class="text-white text-sm mb-1"><strong>${labels.phone}:</strong> ${inv.phone || '-'}</div>
-          <div class="text-white text-sm mb-3">
-            <strong>${labels.amount}:</strong> $${fmt(amount)} &nbsp;
-            <strong>${labels.paidLabel}:</strong> $${fmt(paid)} &nbsp;
-            <strong>${labels.balanceLabel}:</strong> $${fmt(balance)}
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <button onclick="sendWhatsApp(${inv.id})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded text-sm flex-1">${icons.whatsapp}</button>
-            <button onclick="sendSMS(${inv.id})" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded text-sm flex-1">${icons.sms}</button>
-            <button onclick="callCustomer('${inv.phone}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded text-sm flex-1">${icons.phone}</button>
-            <button onclick="printInvoiceById(${inv.id})" class="bg-gray-700 hover:bg-gray-800 text-white px-3 py-2 rounded text-sm flex-1">${icons.print}</button>
-            ${
-              status === 'paid'
-                ? `<button onclick="markUnpaid(${inv.id})" class="bg-gray-300 hover:bg-gray-400 text-gray-900 px-3 py-2 rounded text-sm flex-1">${icons.unpaid}</button>`
-                : `<button onclick="markPaid(${inv.id})" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-2 rounded text-sm flex-1">${icons.paid}</button>`
-            }
-            <button onclick="duplicateInvoice(${inv.id})" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded text-sm flex-1">${icons.duplicate}</button>
-            <button onclick="editInvoice(${inv.id})" class="bg-yellow-500 text-white px-3 py-2 rounded text-sm flex-1">${icons.edit}</button>
-            <button onclick="deleteInvoice(${inv.id})" class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-2 rounded text-sm flex-1">${icons.delete}</button>
-          </div>
-        </div>
-      </td>
-    `;
-
-    tbody.appendChild(tr);
-  });
-}
-
-// ADD ITEM ROWS + TOTAL
-const itemsContainer = $('invoiceItemsContainer');
-const addItemBtn = $('addItemBtn');
-
-function t(key) {
-  const currentLang = localStorage.getItem("lang") || "som";
-  return translations[currentLang]?.[key] || key;
-}
-
-function addItemRow(desc = '', amt = 0) {
-  const div = document.createElement('div');
-  div.className = 'grid sm:grid-cols-3 gap-3 mb-2 item-row';
-  div.innerHTML = `
-    <input type="text" placeholder="${t('Add Item')}" class="descInput mt-1 w-full rounded-xl border px-3 py-2" value="${desc}" />
-    <input type="number" placeholder="${t('amount')}" class="amountInput mt-1 w-full rounded-xl border px-3 py-2" value="${amt}" step="0.01" />
-    <button type="button" class="removeItemBtn bg-red-600 text-white px-3 py-1 rounded-xl">${t('removeItem')}</button>
-  `;
-  itemsContainer.appendChild(div);
-
-  div.querySelector('.removeItemBtn').addEventListener('click', () => {
-    div.remove();
-    updateTotal();
-  });
-
-  div.querySelector('.amountInput').addEventListener('input', updateTotal);
-}
-
-// Update total
-function updateTotal() {
-  let total = 0;
-  document.querySelectorAll('.amountInput').forEach(inp => {
-    total += parseFloat(inp.value) || 0;
-  });
-  $('amount').value = total.toFixed(2);
-}
-
-// Add initial row
-addItemRow();
-
-// Add new item row button
-addItemBtn.addEventListener('click', e => { 
-  e.preventDefault(); 
-  addItemRow(); 
-});
-
-// Update Add Item button text dynamically
-addItemBtn.innerText = t("addItem");
-  
-  // SAVE NEW INVOICE
-
-$('saveInvoiceBtn').addEventListener('click', () => {
-  if (!validateInvoiceForm()) return;
-
-  const editingId = $('editingInvoiceId').value;
-
-  // Collect items
-  const items = [];
-  document.querySelectorAll('.item-row').forEach(row => {
-    const desc = row.querySelector('.descInput').value.trim();
-    const amt = parseFloat(row.querySelector('.amountInput').value) || 0;
-    if (desc && amt > 0) items.push({ description: desc, amount: amt });
-  });
-
-  const totalAmount = items.reduce((sum, i) => sum + i.amount, 0);
-  const paid = parseFloat($('paid').value) || 0;
-
-  if (editingId) {
-    // UPDATE EXISTING INVOICE
-    const inv = invoices.find(x => x.id == editingId);
-    if (!inv) return;
-
-    inv.name = $('customerName').value.trim();
-    inv.phone = $('customerPhone').value.trim();
-    inv.date = $('invoiceDate').value;
-    inv.items = items;
-    inv.amount = totalAmount;
-    inv.paid = paid;
-    inv.balance = Math.max(0, totalAmount - paid);
-    inv.status = $('status').value;
-
-    alert('Invoice updated');
-  } else {
-    // CREATE NEW INVOICE
-    const inv = {
-      id: Date.now(),
-      invoiceNumber: genInvoiceNumber(),
-      name: $('customerName').value.trim(),
-      phone: $('customerPhone').value.trim(),
-      date: $('invoiceDate').value,
-      items,
-      amount: totalAmount,
-      paid,
-      balance: Math.max(0, totalAmount - paid),
-      status: $('status').value,
-      supermarketName: currentUser.supermarketName
+  function applyLanguage(lang){
+    if (!lang) lang = localStorage.getItem(LS_APP_LANG) || 'en';
+    const map = I18N[lang] || I18N.en;
+    // apply to data-i18n elements
+    try {
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        if (map[key]) el.textContent = map[key];
+      });
+    } catch(e){}
+    // update elements by id
+    const storeEl = document.getElementById('storeDisplayDesktop');
+    if (storeEl) {
+      const name = storeEl.textContent || getCurrentUser()?.name || '';
+      const base = map.dashboard || 'Dashboard';
+      const h = storeEl.closest && storeEl.closest('h1');
+      if (h) h.textContent = `${base} - ${name}`;
+    }
+    const placeholders = {
+      searchName: map.searchPlaceholder
     };
-    invoices.push(inv);
-    alert('Invoice created');
-  }
-
-  // ✅ Save only once, with one consistent key
-  localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
-
-  renderInvoices();
-
-  // Reset form
-  $('createInvoiceSection').classList.add('hidden-section');
-  $('editingInvoiceId').value = '';
-  itemsContainer.innerHTML = '';
-  addItemRow();
-  clearForm();
-});
-
-  // === Edit Invoice ===
-  function editInvoice(id){
-  const inv = invoices.find(x => x.id === id);
-  if(!inv) return;
-
-  $('editingInvoiceId').value = inv.id;
-  $('customerName').value = inv.name;
-  $('customerPhone').value = inv.phone;
-  $('invoiceDate').value = inv.date;
-  $('amount').value = inv.amount;
-  $('paid').value = inv.paid;
-  $('status').value = inv.status;
-
-  // Remove existing item rows
-  itemsContainer.innerHTML = '';
-  if(inv.items && inv.items.length){
-    inv.items.forEach(item => addItemRow(item.description, item.amount));
-  } else {
-    addItemRow();
-  }
-
-  $('createInvoiceSection').classList.remove('hidden-section');
-}
-
-  // MARK PAID / UNPAID / DELETE
-  function markPaid(id) {
-  const i = invoices.findIndex(x => x.id === id);
-  if (i === -1) return;
-
-  // kaydi paidBefore si hadhow loo celiyo haddii unpaid la dhaho
-  invoices[i].paidBefore = invoices[i].paid || 0;
-
-  invoices[i].paid = invoices[i].amount;
-  invoices[i].balance = 0;
-  invoices[i].status = 'paid';
-
-  localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
-  renderInvoices();
-}
-
-function markUnpaid(id) {
-  const i = invoices.findIndex(x => x.id === id);
-  if (i === -1) return;
-
-  // haddii aan hore u kaydinay paidBefore soo celi
-  if (typeof invoices[i].paidBefore !== "undefined") {
-    invoices[i].paid = invoices[i].paidBefore;
-    invoices[i].balance = invoices[i].amount - invoices[i].paidBefore;
-  } else {
-    // haddii invoice cusub yahay oo aan la markPaid dhihin
-    invoices[i].paid = 0;
-    invoices[i].balance = invoices[i].amount;
-  }
-
-  invoices[i].status = 'unpaid';
-
-  localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
-  renderInvoices();
-}
-
-  function deleteInvoice(id) {
-    if (!confirm('Delete this invoice?')) return;
-    invoices = invoices.filter(x => x.id !== id);
-    localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
-    renderInvoices();
-  }
-
-  function clearForm() {
-  $('customerName').value = '';
-  $('customerPhone').value = '';
-  $('invoiceDate').value = todayISO(); // sets today as default
-  $('amount').value = '';
-  $('paid').value = '';
-  $('status').value = 'unpaid';
-  $('invoiceItemsContainer').innerHTML = '';
-  addItemRow(); // add one empty row
-}
-
-    // PRINT
- // Helper to escape HTML special characters
-function escapeHtml(str) {
-  if (!str) return '';
-  return str.replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-}
-
-// Print invoice by invoice ID (safe for onclick)
-function printInvoiceById(id) {
-  const inv = invoices.find(i => i.id === id);
-  if (!inv) return alert("Invoice not found");
-  printInvoice(inv);
-}
-
-
-
-// Main print function
-// Main print function
-// PRINT INVOICE for small receipt printer
-function printInvoice(inv, autoPrint = false) { 
-  const w = window.open('', '_blank');
-
-  // Items HTML
-  let itemsHtml = '';
-  if (inv.items && inv.items.length) {
-    inv.items.forEach(item => {
-      itemsHtml += `<tr>
-        <td>${escapeHtml(item.description)}</td>
-        <td style="text-align:right;">$${fmt(item.amount)}</td>
-      </tr>`;
+    Object.entries(placeholders).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if (el) el.placeholder = val;
     });
-  } else {
-    itemsHtml = `<tr>
-      <td>Goods / Services</td>
-      <td style="text-align:right;">$${fmt(inv.amount)}</td>
-    </tr>`;
-  }
-
-  const style = `
-    body { font-family: Arial, sans-serif; margin: 5px; font-size: 10px; color: #333; }
-    h2 { font-size: 16px; margin: 0; color: #1e40af; }
-    table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    th, td { border: 1px solid #000; padding: 4px; }
-    p { font-size: 10px; margin: 4px 0; }
-    .status { font-size: 8px; padding: 2px 4px; display: inline-block; border-radius: 3px; font-weight: bold; }
-    .paid { background-color: #d1fae5; color: #065f46; }
-    .unpaid { background-color: #fef3c7; color: #b45309; }
-  `;
-
-  const html = `
-<head>
-  <title>Invoice ${escapeHtml(inv.invoiceNumber)}</title>
-  <style>${style}</style>
-</head>
-<body>
-  <div style="display:flex; justify-content:space-between; margin-bottom: 5px;">
-    <div>
-      <h2>${escapeHtml(currentUser.supermarketName)}</h2>
-      <div>${escapeHtml(currentUser.supermarketPhone)}</div>
-    </div>
-    <div>
-      <div><strong>Invoice:</strong> ${escapeHtml(inv.invoiceNumber)}</div>
-      <div><strong>Date:</strong> ${escapeHtml(inv.date)}</div>
-    </div>
-  </div>
-
-  <div style="margin-bottom: 5px;">
-    <strong>Bill To:</strong> ${escapeHtml(inv.name)}<br>
-    ${escapeHtml(inv.phone)}
-  </div>
-
-  <table>
-    <thead>
-      <tr><th>Description</th><th style="text-align:right;">Amount</th></tr>
-    </thead>
-    <tbody>
-      ${itemsHtml}
-      <tr><td>Paid</td><td style="text-align:right;">-$${fmt(inv.paid)}</td></tr>
-      <tr><td><strong>Balance</strong></td><td style="text-align:right;"><strong>$${fmt(inv.balance)}</strong></td></tr>
-    </tbody>
-  </table>
-
-  <p>Status: <span class="status ${inv.status === 'paid' ? 'paid' : 'unpaid'}">${inv.status.toUpperCase()}</span></p>
-  `;
-
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-
-  if (autoPrint) {
-    w.onload = () => setTimeout(() => { w.print(); w.close(); }, 300);
-  }
-}
-
-
-  // PHONE & MESSAGING
-  function normalizePhone(phone) {
-    phone = phone.trim();
-    if (!phone.startsWith('+')) {
-      phone = '+252' + phone.replace(/^0+/, '');
-    }
-    return phone;
-  }
-  
-  function sendSMS(id) {
-    const inv = invoices.find(x => x.id === id);
-    if (!inv) return;
-    const phone = normalizePhone(inv.phone);
-    let message = '';
-    if (inv.status === 'paid') {
-  message = `Mahadsanid ${inv.name}, waxaad bixisay $${fmt(inv.paid)}.\nHadhaagagu waa: $${fmt(inv.balance)}.\nDukaanka ${currentUser.supermarketName} (${currentUser.supermarketPhone})`;
-} else {
-  message = `Xusuusin: ${inv.name}, lacagta lagugu leeyahay waa: $${fmt(inv.amount)}.\nFadlan iska bixi lacagta.\nDukaanka ${currentUser.supermarketName} numberka: (${currentUser.supermarketPhone})\nMahadsanid.`;
-}
-
-    window.location.href = `sms:${phone}?body=${encodeURIComponent(message)}`;
-  }
-  
-  function sendWhatsApp(id) {
-    const inv = invoices.find(x => x.id === id);
-    if (!inv) return;
-    const phone = normalizePhone(inv.phone);
-    let message = '';
-    if (inv.status === 'paid') {
-  message = `Mahadsanid ${inv.name}, waxaad bixisay $${fmt(inv.paid)}.\nHadhaagagu waa: $${fmt(inv.balance)}.\nDukaanka ${currentUser.supermarketName} (${currentUser.supermarketPhone})`;
-} else {
-  message = `Xusuusin: ${inv.name}, lacagta lagugu leeyahay waa: $${fmt(inv.amount)}.\nFadlan iska bixi lacagta.\nDukaanka ${currentUser.supermarketName} numberka: (${currentUser.supermarketPhone})\nMahadsanid.`;
-}
-
-    window.open(`https://wa.me/${phone.replace('+','')}?text=${encodeURIComponent(message)}`, "_blank");
-  }
-  
-
-// Export invoices as PDF
-$('exportBtn').addEventListener('click', () => {
-  const { jsPDF } = window.jspdf;
-  const exportData = invoices.filter(inv => inv.supermarketName === currentUser.supermarketName);
-
-  if (!exportData.length) {
-    alert("No invoices to export!");
-    return;
-  }
-
-  const doc = new jsPDF();
-  doc.setFontSize(16);
-  doc.text(`Invoices for ${currentUser.supermarketName}`, 14, 20);
-
-  let y = 30; // starting Y position
-  const pageWidth = 190; // A4 width minus margin
-
-  // Column widths
-  const colWidths = {
-    no: 10,
-    date: 25,
-    amount: 25,
-    paid: 25,
-    balance: 25,
-  };
-
-  // Remaining width is for customer and phone
-  const remaining = pageWidth - colWidths.no - colWidths.date - colWidths.amount - colWidths.paid - colWidths.balance - 10;
-  colWidths.customer = remaining * 0.6;
-  colWidths.phone = remaining * 0.4;
-
-  const colPos = {
-    no: 14,
-    date: 14 + colWidths.no,
-    customer: 14 + colWidths.no + colWidths.date,
-    phone: 14 + colWidths.no + colWidths.date + colWidths.customer,
-    amount: 14 + colWidths.no + colWidths.date + colWidths.customer + colWidths.phone,
-    paid: 14 + colWidths.no + colWidths.date + colWidths.customer + colWidths.phone + colWidths.amount,
-    balance: 14 + colWidths.no + colWidths.date + colWidths.customer + colWidths.phone + colWidths.amount + colWidths.paid
-  };
-
-  // Table Header
-  function drawHeader(yPos) {
-    doc.setFillColor(220, 220, 220);
-    doc.rect(14, yPos, pageWidth, 8, 'F');
-    doc.setTextColor(0);
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("No", colPos.no, yPos + 6);
-    doc.text("Date", colPos.date, yPos + 6);
-    doc.text("Customer", colPos.customer, yPos + 6);
-    doc.text("Phone", colPos.phone, yPos + 6);
-    doc.text("Amount ($)", colPos.amount + colWidths.amount - 2, yPos + 6, { align: 'right' });
-    doc.text("Paid ($)", colPos.paid + colWidths.paid - 2, yPos + 6, { align: 'right' });
-    doc.text("Balance ($)", colPos.balance + colWidths.balance - 2, yPos + 6, { align: 'right' });
-  }
-
-  drawHeader(y);
-  y += 8;
-
-  let no = 1;
-  exportData.forEach(inv => {
-    if (y > 280) { // page break
-      doc.addPage();
-      y = 20;
-      drawHeader(y);
-      y += 8;
-    }
-
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text(`${no}`, colPos.no, y + 6); // No column in bold
-    doc.setFont("helvetica", "normal");
-    doc.text(`${inv.date}`, colPos.date, y + 6);
-
-    // Wrap customer and phone
-    const customerText = doc.splitTextToSize(inv.name, colWidths.customer);
-    const phoneText = doc.splitTextToSize(inv.phone, colWidths.phone);
-    doc.text(customerText, colPos.customer, y + 6);
-    doc.text(phoneText, colPos.phone, y + 6);
-
-    // Amounts right-aligned
-    doc.text(`${inv.amount.toFixed(2)}`, colPos.amount + colWidths.amount - 2, y + 6, { align: 'right' });
-    doc.text(`${inv.paid.toFixed(2)}`, colPos.paid + colWidths.paid - 2, y + 6, { align: 'right' });
-    doc.text(`${inv.balance.toFixed(2)}`, colPos.balance + colWidths.balance - 2, y + 6, { align: 'right' });
-
-    // Adjust y based on tallest wrapped column
-    const maxLines = Math.max(customerText.length, phoneText.length);
-    y += 8 * maxLines;
-    no++;
-  });
-
-  doc.save(`invoices_${currentUser.supermarketName}.pdf`);
-});
-
-//clear paid
-$('clearPaidBtn').addEventListener('click', () => {
-  if(confirm("Delete all paid invoices?")) {
-    invoices = invoices.filter(inv => !(inv.supermarketName === currentUser.supermarketName && inv.status === 'paid'));
-    localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
-    renderInvoices();
-    alert("All paid invoices deleted!");
-  }
-});
-
-//duplicate invoice
-function duplicateInvoice(id) {
-  const inv = invoices.find(x => x.id === id);
-  if(!inv) return;
-
-  const newInv = { ...inv, id: Date.now(), invoiceNumber: genInvoiceNumber(), date: todayISO() };
-  invoices.push(newInv);
-  localStorage.setItem(LS_INVOICES, JSON.stringify(invoices));
-  renderInvoices();
-  alert("Invoice duplicated!");
-}
-
-// Bulk WhatsApp/sms reminders
-document.getElementById('sendAllReminders').addEventListener('click', () => {
-  const unpaidInvoices = invoices.filter(
-    inv => inv.supermarketName === currentUser.supermarketName && inv.status === 'unpaid'
-  );
-
-  if (unpaidInvoices.length === 0) {
-    alert('❌ Ma jiraan invoices aan la bixin.');
-    return;
-  }
-
-  const method = document.getElementById('reminderMethod').value;
-
-  // Group invoices by customer phone
-  const invoicesByCustomer = {};
-  unpaidInvoices.forEach(inv => {
-    const phone = normalizePhone(inv.phone);
-    if (!invoicesByCustomer[phone]) invoicesByCustomer[phone] = [];
-    invoicesByCustomer[phone].push(inv);
-  });
-
-  const customers = Object.entries(invoicesByCustomer);
-  let index = 0;
-
-  // ---------- CREATE MODAL ----------
-  const modal = document.createElement('div');
-  modal.id = 'reminderModal';
-  modal.style.position = 'fixed';
-  modal.style.top = '0';
-  modal.style.left = '0';
-  modal.style.width = '100%';
-  modal.style.height = '100%';
-  modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
-  modal.style.display = 'flex';
-  modal.style.alignItems = 'center';
-  modal.style.justifyContent = 'center';
-  modal.style.zIndex = '9999';
-  modal.innerHTML = `
-    <div style="background:#fff; padding:20px; border-radius:10px; max-width:400px; text-align:center;">
-      <p id="modalMessage"></p>
-      <button id="modalOk" style="margin:5px; padding:8px 16px; background:green; color:white; border:none; border-radius:5px;">OK</button>
-      <button id="modalCancel" style="margin:5px; padding:8px 16px; background:red; color:white; border:none; border-radius:5px;">Cancel</button>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  const modalMessage = document.getElementById('modalMessage');
-  const modalOk = document.getElementById('modalOk');
-  const modalCancel = document.getElementById('modalCancel');
-
-  function sendNext() {
-    if (index >= customers.length) {
-      modalMessage.innerText = `✅ Dhamaantood waa la diray: ${customers.length} ${method === 'wa' ? 'WhatsApp' : 'SMS'} fariimo.`;
-      modalOk.style.display = 'none';
-      modalCancel.innerText = 'Close';
-      return;
-    }
-
-    const [phone, invs] = customers[index];
-    const customerName = invs[0].name || "Customer";
-    const totalBalance = invs.reduce((sum, i) => sum + (i.balance || 0), 0);
-
-    const invoiceList = invs
-      .map(i => `🧾 Invoice #${i.invoiceNumber || 'N/A'}: $${fmt(i.balance)}`)
-      .join('\n');
-
-    const message = `Xasuusin: ${customerName}\nWaxaa laguugu leeyahay lacagaha soo socda:\n${invoiceList}\nTotal: $${fmt(totalBalance)}\nFadlan iska bixi Dukaanka: ${currentUser.supermarketName}, Numberka ${currentUser.supermarketPhone}`;
-
-    const url = method === 'wa'
-      ? `https://wa.me/${phone.replace('+','')}?text=${encodeURIComponent(message)}`
-      : `sms:${phone}?body=${encodeURIComponent(message)}`;
-
-    modalMessage.innerText = `Fariinta ${index + 1} ee ${customers.length}:\n\n${message}`;
-
-    modalOk.onclick = () => {
-      window.open(url, "_blank");
-      index++;
-      sendNext();
+    // buttons & labels mapped earlier:
+    const mapById = {
+      logoutBtn: map.logout,
+      createInvoiceBtn: map.createInvoice,
+      addItemBtn: map.addItem,
+      saveInvoiceBtn: map.saveInvoice,
+      clearPaidBtn: map.clearPaid,
+      sendAllReminders: map.sendAllReminders,
+      addProductBtn: map.addProduct,
+      buyRecord: map.buyRecord,
+      buyOnly: map.buyOnly
     };
-
-    modalCancel.onclick = () => {
-      modal.remove();
-    };
-  }
-
-  sendNext();
-});
-
-function callCustomer(phone) {
-  if (!phone) {
-    alert("No phone number available for this customer.");
-    return;
-  }
-  window.location.href = `tel:${phone}`;
-}
-
-
-// Somali names for days
-const daysSomali = ["Axad", "Isniin", "Talaado", "Arbaco", "Khamiis", "Jimco", "Sabti"];
-
-// Function to get day name in Somali or English
-function getDayName(date, lang = "som") {
-  const dayIndex = date.getDay(); // 0 = Sunday, 1 = Monday, ...
-  if(lang === "som") return daysSomali[dayIndex];
-  return date.toLocaleDateString("en-US", { weekday: "long" });
-}
-
-
-function updateClock() {
-  const timeEl = document.getElementById("currentTime");
-  const now = new Date();
-  const lang = localStorage.getItem("lang") || "som";
-
-  // Somali day names
-  const daysSomali = ["Axad", "Isniin", "Talaado", "Arbaco", "Khamiis", "Jimco", "Sabti"];
-  
-  let weekday = now.toLocaleString('en-US', { weekday: 'long' }); // Default English
-  if (lang === "som") {
-    weekday = daysSomali[now.getDay()]; // Replace with Somali
-  }
-
-  // Format time and date
-  const options = { 
-    year: 'numeric', 
-    month: 'numeric', 
-    day: 'numeric', 
-    hour: '2-digit', 
-    minute: '2-digit', 
-    second: '2-digit',
-    hour12: true
-  };
-  const dateTime = now.toLocaleString('en-US', options);
-
-  // Display with day name
-  timeEl.textContent = `${weekday}, ${dateTime}`;
-}
-
-// Update clock immediately and every second
-updateClock();
-setInterval(updateClock, 1000);
-
-
-// Live search and status filter
-$('filterStatus').addEventListener('change', renderInvoices);
-$('searchName').addEventListener('input', renderInvoices);
-
-// ====== Notices System ======
-
-// Save a new notice (with optional welcome flag)
-function saveNotice(message, isWelcome = false) {
-  if (!message.trim()) return;
-
-  const notices = JSON.parse(localStorage.getItem("notices")) || [];
-
-  // Prevent duplicate welcome notices
-  if (
-    isWelcome &&
-    notices.some(n => n.isWelcome && n.message.includes(currentUser.supermarketName))
-  ) {
-    return;
-  }
-
-  const newNotice = {
-    id: Date.now().toString(),
-    message,
-    by: "Administrator",
-    date: new Date().toLocaleString(),
-    reactions: 0,
-    isWelcome
-  };
-
-  notices.push(newNotice);
-  localStorage.setItem("notices", JSON.stringify(notices));
-  renderNotices();
-}
-
-// Render all notices
-function renderNotices() {
-  const noticeList = document.getElementById("noticeList");
-  if (!noticeList) return;
-
-  const notices = JSON.parse(localStorage.getItem("notices")) || [];
-  const reactedNotices = JSON.parse(localStorage.getItem("reactedNotices")) || {};
-
-  noticeList.innerHTML = "";
-
-  // Sort: welcome notice on top
-  const sortedNotices = [...notices].sort((a, b) => (b.isWelcome ? 1 : 0) - (a.isWelcome ? 1 : 0));
-
-  sortedNotices.forEach((n, index) => {
-    const div = document.createElement("div");
-    div.className = "border p-3 rounded shadow mb-3";
-
-    if (n.isWelcome) {
-      // Welcome notice: no react button, no reactions count
-      div.innerHTML = `
-        <div class="font-medium text-blue-600">${n.message}</div>
-        <div class="text-sm text-gray-500 mt-1">By: ${n.by} | ${n.date}</div>
-      `;
-    } else {
-      // Normal notice
-      div.innerHTML = `
-        <div class="font-medium">${n.message}</div>
-        <div class="text-sm text-gray-500 mt-1">By: ${n.by} | ${n.date}</div>
-        <div class="mt-2 flex items-center justify-between">
-          <span id="reactionCount-${index}" class="text-gray-600">${n.reactions} supermarkets reacted</span>
-          <button class="reactionBtn px-2 py-1 bg-green-500 text-white rounded">👍 React</button>
-        </div>
-      `;
-
-      const btn = div.querySelector(".reactionBtn");
-
-      // Disable button if already reacted
-      if (reactedNotices[n.id]) {
-        btn.disabled = true;
-        btn.textContent = "Reacted";
-        btn.classList.remove("bg-green-500");
-        btn.classList.add("bg-gray-400");
-      }
-
-      btn.addEventListener("click", () => {
-        if (!reactedNotices[n.id]) {
-          animateReaction(index, 1);
-          reactedNotices[n.id] = true;
-          localStorage.setItem("reactedNotices", JSON.stringify(reactedNotices));
-
-          btn.disabled = true;
-          btn.textContent = "Reacted";
-          btn.classList.remove("bg-green-500");
-          btn.classList.add("bg-gray-400");
+    Object.keys(mapById).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        if (el.querySelector && el.querySelector('i')) {
+          Array.from(el.childNodes).forEach(n => { if (n.nodeType === Node.TEXT_NODE) n.remove(); });
+          el.appendChild(document.createTextNode(' ' + mapById[id]));
+        } else {
+          el.textContent = mapById[id];
         }
+      }
+    });
+  }
+
+  /* apply stored language on load */
+  applyLanguage(localStorage.getItem(LS_APP_LANG) || 'en');
+
+  /* =========================
+     BASIC UI ELEMENT LOOKUPS
+     ========================= */
+  const authSection = document.getElementById("authSection");
+  const dashboardSection = document.getElementById("dashboardSection");
+
+  // Auth elements
+  const registrationForm = document.getElementById("registrationForm");
+  const regName = document.getElementById("regName");
+  const regAddress = document.getElementById("regAddress");
+  const regPhone = document.getElementById("regPhone");
+  const regEmail = document.getElementById("regEmail");
+  const regPassword = document.getElementById("regPassword");
+  const regConfirm = document.getElementById("regConfirm");
+  const registerBtn = document.getElementById("registerBtn");
+
+  const loginForm = document.getElementById("loginForm");
+  const loginName = document.getElementById("loginName");
+  const loginPassword = document.getElementById("loginPassword");
+  const loginBtn = document.getElementById("loginBtn");
+
+  const showLogin = document.getElementById("showLogin");
+  const showRegister = document.getElementById("showRegister");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  const storeDisplayDesktop = document.getElementById("storeDisplayDesktop");
+  const totalInvoicesEl = document.getElementById("totalInvoices");
+  const totalProductsEl = document.getElementById("totalProducts");
+  const totalSalesEl = document.getElementById("totalSales");
+
+  const navButtons = Array.from(document.querySelectorAll(".navBtn"));
+  const dashboardContent = document.getElementById("dashboardContent");
+  const invoicesSection = document.getElementById("invoicesSection");
+  const productsSection = document.getElementById("productsSection");
+  const reportsSection = document.getElementById("reportsSection");
+
+  /* INVOICES scoped */
+  const inv = invoicesSection;
+  const createInvoiceBtn = inv?.querySelector('#createInvoiceBtn');
+  const currentTimeEl = inv?.querySelector('#currentTime');
+  const createInvoiceSection = inv?.querySelector('#createInvoiceSection');
+  const editingInvoiceId = inv?.querySelector('#editingInvoiceId');
+  const customerNameInput = inv?.querySelector('#customerName');
+  const customerPhoneInput = inv?.querySelector('#customerPhone');
+  const invoiceDateInput = inv?.querySelector('#invoiceDate');
+  const invoiceItemsContainer = inv?.querySelector('#invoiceItemsContainer');
+  const addItemBtn = inv?.querySelector('#addItemBtn');
+  const amountInput = inv?.querySelector('#amount');
+  const paidInput = inv?.querySelector('#paid');
+  const statusSelect = inv?.querySelector('#status');
+  const saveInvoiceBtn = inv?.querySelector('#saveInvoiceBtn');
+  const formMsg = inv?.querySelector('#formMsg');
+  const invoiceRows = inv?.querySelector('#invoiceRows');
+  const emptyStateInv = inv?.querySelector('#emptyState');
+  const clearPaidBtn = inv?.querySelector('#clearPaidBtn');
+  const filterStatus = inv?.querySelector('#filterStatus');
+  const searchName = inv?.querySelector('#searchName');
+  const reminderMethod = inv?.querySelector('#reminderMethod');
+  const sendAllRemindersBtn = inv?.querySelector('#sendAllReminders');
+
+  /* PRODUCTS scoped */
+  const prodSection = productsSection;
+  const addProductBtn = document.getElementById('addProductBtn');
+  const productModal = document.getElementById('productModal');
+  const productModalBackdrop = document.getElementById('productModalBackdrop');
+  const closeModalBtn = document.getElementById('closeModal');
+  const cancelModalBtn = document.getElementById('cancelModal');
+  const productForm = document.getElementById('productForm');
+  const modalTitle = document.getElementById('modalTitle');
+  const productName = document.getElementById('productName');
+  const productCost = document.getElementById('productCost');
+  const productPrice = document.getElementById('productPrice');
+  const productQty = document.getElementById('productQty');
+  const productRows = document.getElementById('productRows');
+  const productCards = document.getElementById('productCards');
+  const searchInput = document.getElementById('searchInput');
+  const emptyAddBtn = document.getElementById('emptyAddBtn');
+
+  const shopModal = document.getElementById('shopModal');
+  const shopBackdrop = document.getElementById('shopBackdrop');
+  const cartItemsEl = document.getElementById('cartItems');
+  const openCartHeader = document.getElementById('openCartHeader');
+  const cartCountHeader = document.getElementById('cartCountHeader');
+  const clearCartBtn = document.getElementById('clearCart');
+  const closeCartBtn = document.getElementById('closeCart');
+  const sellCartBtn = document.getElementById('sellCart');
+
+  const invoiceModal = prodSection?.querySelector('#invoiceModal');
+  const invoiceForm = prodSection?.querySelector('#invoiceForm');
+  const invoiceCustomerName = prodSection?.querySelector('#customerName');
+  const invoiceCustomerPhone = prodSection?.querySelector('#customerPhone');
+  const invoiceDateInputP = prodSection?.querySelector('#invoiceDate');
+  const invoiceTotalEl = prodSection?.querySelector('#invoiceTotal');
+  const invoiceAmountPaid = prodSection?.querySelector('#amountPaid');
+  const invoiceStatusSelect = prodSection?.querySelector('#status');
+  const backToCartBtn = prodSection?.querySelector('#backToCart');
+  const buyRecordBtn = prodSection?.querySelector('#buyRecord');
+  const buyOnlyBtn = prodSection?.querySelector('#buyOnly');
+
+  const reportsRows = document.getElementById('reportsRows');
+  const reportsTotalItems = document.getElementById('reportsTotalItems');
+  const reportsTotalSales = document.getElementById('reportsTotalSales');
+  const reportsConfirmDeleteAll = document.getElementById('reportsConfirmDeleteAll');
+  const reportsExportPdf = document.getElementById('reportsExportPdf');
+  const reportsDeleteAll = document.getElementById('reportsDeleteAll');
+
+  let editingProductId = null;
+  let cart = [];
+
+  /* ============= AUTH (register/login/logout) ============= */
+  function showLoginForm(){ registrationForm?.classList.add('hidden'); loginForm?.classList.remove('hidden'); }
+  function showRegisterForm(){ registrationForm?.classList.remove('hidden'); loginForm?.classList.add('hidden'); }
+
+  registerBtn?.addEventListener('click', () => {
+    const name = regName.value.trim();
+    const address = regAddress.value.trim();
+    const phone = regPhone.value.trim();
+    const email = regEmail.value.trim();
+    const password = regPassword.value;
+    const confirm = regConfirm.value;
+    if (!name || !address || !phone || !email || !password || !confirm) { alert('Please fill in all fields.'); return; }
+    if (password !== confirm) { alert('Passwords do not match.'); return; }
+    const users = getUsers();
+    if (users.find(u => u && u.name && u.name.toLowerCase() === name.toLowerCase())) { alert('Supermarket name taken.'); return; }
+    users.push({ name, address, phone, email, password });
+    saveUsers(users);
+    alert('Registered. Please login.');
+    regName.value = regAddress.value = regPhone.value = regEmail.value = regPassword.value = regConfirm.value = '';
+    showLoginForm();
+  });
+
+  loginBtn?.addEventListener('click', () => {
+    const name = loginName.value.trim();
+    const pwd = loginPassword.value;
+    if (!name || !pwd) { alert('Enter name & password'); return; }
+    const users = getUsers();
+    const user = users.find(u => u && u.name && u.name.toLowerCase() === name.toLowerCase() && u.password === pwd);
+    if (!user) { alert('Invalid credentials'); return; }
+    setCurrentUser(user);
+    loadDashboard();
+  });
+
+  logoutBtn?.addEventListener('click', () => {
+    clearCurrentUser();
+    authSection?.classList.remove('hidden');
+    dashboardSection?.classList.add('hidden');
+    showLoginForm();
+  });
+
+  /* ============= DASHBOARD ============= */
+  function updateDashboardTotals(){
+    const user = getCurrentUser();
+    if (!user) return;
+    const invoices = getStoreInvoices(user.name);
+    const products = getStoreProducts(user.name);
+    totalInvoicesEl && (totalInvoicesEl.textContent = invoices.length);
+    totalProductsEl && (totalProductsEl.textContent = (Array.isArray(products)?products.length:0));
+    const totalSales = invoices.reduce((s,i)=>s+(Number(i.paid)||0),0);
+    totalSalesEl && (totalSalesEl.textContent = fmtMoney(totalSales));
+  }
+  function loadDashboard(){
+    const user = getCurrentUser();
+    if (!user) return;
+    authSection && authSection.classList.add('hidden');
+    dashboardSection && dashboardSection.classList.remove('hidden');
+    if (storeDisplayDesktop) {
+      storeDisplayDesktop.textContent = user.name;
+      // update header H1 text translation
+      applyLanguage(localStorage.getItem(LS_APP_LANG) || 'en');
+    }
+    updateDashboardTotals();
+    showSection('dashboardContent');
+    // ensure settings cog visible
+    try { if (window.AppSettings && typeof window.AppSettings.open === 'function') window.AppSettings.createStoreSettingsBtn?.(); } catch(e){}
+  }
+  window.addEventListener('dataUpdated', updateDashboardTotals);
+
+  /* ============= NAV / SHOW SECTION ============= */
+  function showSection(targetId) {
+    // hide all
+    [dashboardContent, invoicesSection, productsSection, reportsSection].forEach(s => s && s.classList.add("hidden"));
+    // show requested
+    const el = document.getElementById(targetId);
+    if (el) el.classList.remove("hidden");
+    // refresh content
+    if (targetId === "dashboardContent") updateDashboardTotals();
+    if (targetId === "invoicesSection") renderInvoiceTable();
+    if (targetId === "productsSection") renderProductList(document.getElementById('searchInput')?.value || '');
+    if (targetId === "reportsSection") renderReports();
+  }
+  navButtons.forEach(btn => btn.addEventListener('click', () => {
+    const target = btn.getAttribute('data-target');
+    if (target) showSection(target);
+  }));
+
+  /* ============= CLOCK ============= */
+  function tickClock(){ const now=new Date(); const hh=String(now.getHours()).padStart(2,'0'); const mm=String(now.getMinutes()).padStart(2,'0'); const ss=String(now.getSeconds()).padStart(2,'0'); currentTimeEl && (currentTimeEl.textContent = `${fmtDate(now)} ${hh}:${mm}:${ss}`); }
+  setInterval(tickClock,1000); tickClock();
+
+  /* ============= PRODUCTS & CART ============= */
+  function openProductModal(isEdit=false){ if (!productModal) return; productModal.classList.remove('hidden'); productModalBackdrop.classList.remove('hidden'); if (!isEdit) try{ productForm.reset(); }catch(e){} modalTitle && (modalTitle.textContent = isEdit ? 'Edit Product' : 'Add Product'); }
+  function closeProductModal(){ productModal && productModal.classList.add('hidden'); productModalBackdrop && productModalBackdrop.classList.add('hidden'); }
+
+  addProductBtn?.addEventListener('click', ()=>{ editingProductId=null; openProductModal(false); });
+  emptyAddBtn?.addEventListener('click', ()=>{ editingProductId=null; openProductModal(false); });
+  closeModalBtn?.addEventListener('click', closeProductModal);
+  cancelModalBtn?.addEventListener('click', closeProductModal);
+  productModalBackdrop?.addEventListener('click', closeProductModal);
+
+  productForm?.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const name = productName?.value.trim() || '';
+    const cost = parseFloat(productCost?.value) || 0;
+    const price = parseFloat(productPrice?.value) || 0;
+    const qty = parseInt(productQty?.value) || 0;
+    if (!name || price < 0 || qty < 0) { alert('Fill product fields correctly'); return; }
+    const user = getCurrentUser(); if (!user) { alert('Login required'); return; }
+    const all = getAllProducts();
+    if (editingProductId) {
+      const idx = all.findIndex(p => p.id === editingProductId && String(p.store||'').toLowerCase() === String(user.name||'').toLowerCase());
+      if (idx >= 0) all[idx] = { ...all[idx], name, cost, price, qty };
+    } else {
+      const id = `PRD-${Date.now()}`; all.push({ id, store: user.name, name, cost, price, qty });
+    }
+    saveAllProducts(all);
+    closeProductModal(); renderProductList(searchInput?.value || ''); window.dispatchEvent(new Event('dataUpdated'));
+  });
+
+  function renderProductList(filter=''){
+    const user = getCurrentUser(); if (!user) return;
+    const all = getStoreProducts(user.name);
+    const items = filter ? all.filter(p => (p.name||'').toString().toLowerCase().includes(filter.toLowerCase())) : all;
+    if (!productRows || !productCards) return;
+    productRows.innerHTML = ''; productCards.innerHTML = '';
+    productCards.className = 'grid grid-cols-2 gap-2';
+    const emptyEl = document.getElementById('emptyState');
+    if (!items.length) { emptyEl && emptyEl.classList.remove('hidden'); return; } else emptyEl && emptyEl.classList.add('hidden');
+    items.forEach((p, idx) => {
+      // table row
+      const tr = document.createElement('tr');
+      tr.className = 'block sm:table-row border-b';
+      tr.innerHTML = `<td class="p-2">${idx+1}</td><td class="p-2">${p.name}</td><td class="p-2">${Number(p.cost||0).toFixed(2)}</td><td class="p-2">${Number(p.price||0).toFixed(2)}</td><td class="p-2">${p.qty}</td><td class="p-2 no-print"><div class="flex gap-2"><button class="px-2 py-1 rounded bg-green-600 text-white" data-action="buy" data-id="${p.id}"><i class="fa-solid fa-cart-shopping"></i></button><button class="px-2 py-1 rounded bg-blue-600 text-white" data-action="edit" data-id="${p.id}">Edit</button><button class="px-2 py-1 rounded bg-red-600 text-white" data-action="delete" data-id="${p.id}">Delete</button></div></td>`;
+      productRows.appendChild(tr);
+      // card (mobile)
+      const card = document.createElement('div');
+      card.className = 'bg-white dark:bg-gray-800 rounded-xl p-3 shadow';
+      card.innerHTML = `<h4 class="font-semibold">${p.name}</h4><p class="text-sm">Original: ${Number(p.cost||0).toFixed(2)} | Price: ${Number(p.price||0).toFixed(2)}</p><p class="text-sm">Qty: ${p.qty}</p><div class="flex gap-2 mt-2"><button class="px-3 py-1 bg-green-600 text-white" data-action="buy" data-id="${p.id}"><i class="fa-solid fa-cart-shopping"></i> Add</button><button class="px-3 py-1 bg-blue-600 text-white" data-action="edit" data-id="${p.id}">Edit</button><button class="px-3 py-1 bg-red-600 text-white" data-action="delete" data-id="${p.id}">Del</button></div>`;
+      productCards.appendChild(card);
+    });
+  }
+  searchInput?.addEventListener('input', e => renderProductList(e.target.value));
+
+  productRows?.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-action]'); if (!btn) return; const act = btn.getAttribute('data-action'); const id = btn.getAttribute('data-id'); handleProductAction(act,id);
+  });
+  productCards?.addEventListener('click', e => {
+    const btn = e.target.closest('button[data-action]'); if (!btn) return; const act = btn.getAttribute('data-action'); const id = btn.getAttribute('data-id'); handleProductAction(act,id);
+  });
+
+  function handleProductAction(action,id){
+    const user = getCurrentUser(); if (!user) return;
+    const all = getAllProducts();
+    const idx = all.findIndex(p => p.id === id && String(p.store||'').toLowerCase() === String(user.name||'').toLowerCase());
+    if (action === 'edit' && idx >= 0){ const prod = all[idx]; editingProductId = id; modalTitle && (modalTitle.textContent = 'Edit Product'); productName.value = prod.name; productCost.value = prod.cost; productPrice.value = prod.price; productQty.value = prod.qty; openProductModal(true); return; }
+    if (action === 'delete' && idx >= 0){ if (!confirm('Delete this product?')) return; all.splice(idx,1); saveAllProducts(all); renderProductList(searchInput?.value || ''); window.dispatchEvent(new Event('dataUpdated')); return; }
+    if (action === 'buy' && idx >= 0){ addToCart(id); return; }
+  }
+
+  /* CART */
+  function addToCart(productId){
+    const user = getCurrentUser(); if (!user) return;
+    const all = getAllProducts();
+    const prod = all.find(p => p.id === productId && String(p.store||'').toLowerCase() === String(user.name||'').toLowerCase());
+    if (!prod) return alert('Product not found.');
+    const existing = cart.find(c => c.id === productId);
+    const existingQty = existing ? existing.qty : 0;
+    if (existingQty + 1 > prod.qty) return alert('Not enough stock.');
+    if (existing) existing.qty += 1; else cart.push({ id: prod.id, name: prod.name, price: Number(prod.price), qty: 1 });
+    renderCart();
+  }
+  function renderCart(){
+    if (!cartItemsEl) return;
+    cartItemsEl.innerHTML = '';
+    let totalCount = 0, totalAmount = 0;
+    if (!cart.length) { cartItemsEl.innerHTML = '<p class="text-gray-500">Cart is empty.</p>'; }
+    else {
+      cart.forEach(item => {
+        totalCount += item.qty; totalAmount += item.price * item.qty;
+        const row = document.createElement('div'); row.className = 'flex justify-between items-center gap-3 p-2 border-b';
+        row.innerHTML = `<div><div class="font-semibold">${item.name}</div><div class="text-sm">Price: ${fmtMoney(item.price)} | Qty: ${item.qty}</div></div>
+          <div class="flex flex-col items-end gap-2"><div class="text-sm font-semibold">${fmtMoney(item.price*item.qty)}</div><div><button class="px-2 py-1 bg-gray-200 rounded mr-1" data-decrease="${item.id}">-</button><button class="px-2 py-1 bg-gray-200 rounded" data-increase="${item.id}">+</button></div><button class="px-2 py-1 bg-red-500 text-white rounded mt-1" data-remove="${item.id}">Remove</button></div>`;
+        cartItemsEl.appendChild(row);
       });
     }
-
-    noticeList.appendChild(div);
-  });
-}
-
-// Animate reaction count increment
-function animateReaction(index, increment = 1) {
-  const notices = JSON.parse(localStorage.getItem("notices")) || [];
-  if (!notices[index] || notices[index].isWelcome) return; // skip welcome notices
-
-  const reactionSpan = document.getElementById(`reactionCount-${index}`);
-  if (!reactionSpan) return;
-
-  let current = notices[index].reactions;
-  const target = current + increment;
-
-  const step = () => {
-    if (current < target) {
-      current++;
-      reactionSpan.textContent = `${current} supermarkets reacted`;
-      notices[index].reactions = current;
-      localStorage.setItem("notices", JSON.stringify(notices));
-      requestAnimationFrame(step);
+    cartCountHeader && (cartCountHeader.textContent = totalCount);
+    shopModal && (shopModal.dataset.total = totalAmount);
+  }
+  cartItemsEl?.addEventListener('click', e => {
+    const idRemove = e.target.getAttribute('data-remove'); const idInc = e.target.getAttribute('data-increase'); const idDec = e.target.getAttribute('data-decrease');
+    const user = getCurrentUser(); if (!user) return;
+    const all = getAllProducts();
+    if (idRemove) { cart = cart.filter(i => i.id !== idRemove); renderCart(); return; }
+    if (idInc) {
+      const prod = all.find(p=>p.id===idInc && String(p.store||'').toLowerCase()===String(user.name||'').toLowerCase()); if (!prod) return alert('Product not found.');
+      const it = cart.find(i=>i.id===idInc); if (it.qty+1 > prod.qty) return alert('Not enough stock.'); it.qty+=1; renderCart(); return;
     }
-  };
-  step();
-}
-
-// Fake reactions every minute (only for non-welcome notices)
-setInterval(() => {
-  const notices = JSON.parse(localStorage.getItem("notices")) || [];
-  if (notices.length === 0) return;
-
-  const normalNotices = notices.filter(n => !n.isWelcome);
-  if (normalNotices.length === 0) return;
-
-  const randomNotice = normalNotices[Math.floor(Math.random() * normalNotices.length)];
-  const idx = notices.indexOf(randomNotice);
-
-  animateReaction(idx, 1);
-}, 60000);
-
-// ====== Welcome Notice on Login ======
-window.addEventListener("DOMContentLoaded", () => {
-  if (!currentUser) return;
-
-  const welcomeMessage = `Welcome to the Invoice App Maker. ${currentUser.supermarketName}`;
-  saveNotice(welcomeMessage, true); // save once per supermarket
-  renderNotices();
-});
-
-// ====== Modal ======
-
-if (noticeBtn && noticeModal && closeNoticeModal) {
-  noticeBtn.addEventListener("click", () => {
-    renderNotices();
-    noticeModal.classList.remove("hidden");
-    noticeModal.classList.add("flex");
+    if (idDec) {
+      const it = cart.find(i=>i.id===idDec); if (!it) return; it.qty = Math.max(0, it.qty-1); if (it.qty===0) cart = cart.filter(i=>i.id!==idDec); renderCart(); return;
+    }
   });
 
-  
-}
+  openCartHeader?.addEventListener('click', ()=>{ shopModal?.classList.remove('hidden'); shopBackdrop?.classList.remove('hidden'); renderCart(); });
+  closeCartBtn?.addEventListener('click', ()=>{ shopModal?.classList.add('hidden'); shopBackdrop?.classList.add('hidden'); });
+  shopBackdrop?.addEventListener('click', ()=>{ shopModal?.classList.add('hidden'); shopBackdrop?.classList.add('hidden'); });
+  clearCartBtn?.addEventListener('click', ()=>{ if (!confirm('Clear all items from cart?')) return; cart=[]; renderCart(); });
 
+  sellCartBtn?.addEventListener('click', ()=> {
+    if (!cart.length) return alert('Cart empty.');
+    invoiceCustomerName && (invoiceCustomerName.value=''); invoiceCustomerPhone && (invoiceCustomerPhone.value='+252'); invoiceDateInputP && (invoiceDateInputP.value = fmtDate(new Date()));
+    const total = Number(shopModal?.dataset.total || 0); invoiceTotalEl && (invoiceTotalEl.textContent = fmtMoney(total)); invoiceAmountPaid && (invoiceAmountPaid.value = ''); invoiceStatusSelect && (invoiceStatusSelect.value = 'unpaid');
+    invoiceModal?.classList.remove('hidden'); shopModal?.classList.add('hidden'); shopBackdrop?.classList.add('hidden');
+  });
+  backToCartBtn?.addEventListener('click', ()=>{ invoiceModal?.classList.add('hidden'); shopModal?.classList.remove('hidden'); shopBackdrop?.classList.remove('hidden'); });
 
-//saveNotice("thanks")
+  /* buyRecord */
+  buyRecordBtn?.addEventListener('click', ()=>{
+    const cust = invoiceCustomerName?.value.trim(); const phone = invoiceCustomerPhone?.value.trim();
+    const date = invoiceDateInputP?.value || fmtDate(new Date()); const paid = Number(invoiceAmountPaid?.value) || 0; const status = invoiceStatusSelect?.value || 'unpaid'; const total = Number(shopModal?.dataset.total || 0);
+    if (!cust) { alert('Customer name required'); return; } if (!phone) { alert('Customer phone required'); return; }
+    const allProducts = getAllProducts(); for (const c of cart) { const prod = allProducts.find(p=>p.id===c.id); if (!prod || prod.qty < c.qty) return alert(`Not enough stock for ${c.name}.`); }
+    const invId = `INV-${Date.now()}`; const invoiceItems = cart.map(i=>({ name:i.name, price:i.price, qty:i.qty, total:i.price*i.qty }));
+    const invoicePayload = { id: invId, store: getCurrentUser().name, date, customer: cust, phone, items: invoiceItems, amount: total, paid, status };
+    const allInv = getAllInvoices(); allInv.push(invoicePayload); saveAllInvoices(allInv);
+    createReportEntry({ id:`RPT-${Date.now()}`, date, store: getCurrentUser().name, items: invoiceItems, amount: total, paid, status, customer: cust, phone });
+    for (const c of cart) { const idx = allProducts.findIndex(p=>p.id===c.id && String(p.store||'').toLowerCase()===String(getCurrentUser().name||'').toLowerCase()); if (idx>=0) allProducts[idx].qty = Math.max(0, allProducts[idx].qty - c.qty); }
+    saveAllProducts(allProducts); cart=[]; renderCart(); renderProductList(searchInput?.value || ''); invoiceModal?.classList.add('hidden'); window.dispatchEvent(new Event('dataUpdated')); alert('Sold & recorded.');
+  });
 
-//delete notices
-//localStorage.removeItem("notices");
-//console.log("✅ All notices deleted from localStorage");
+  /* buyOnly */
+  buyOnlyBtn?.addEventListener('click', ()=>{
+    if (!cart.length) return alert('Cart empty'); const date = invoiceDateInputP?.value || fmtDate(new Date()); const total = Number(shopModal?.dataset.total || 0);
+    const allProducts = getAllProducts(); for (const c of cart) { const prod = allProducts.find(p=>p.id===c.id); if (!prod || prod.qty < c.qty) return alert(`Not enough stock for ${c.name}.`); }
+    const invoiceItems = cart.map(i=>({ name:i.name, price:i.price, qty:i.qty, total:i.price*i.qty }));
+    createReportEntry({ id:`RPT-${Date.now()}`, date, store: getCurrentUser().name, items: invoiceItems, amount: total, paid:0, status:'unpaid', customer:'Walk-in Customer', phone:'+252000000000' });
+    for (const c of cart) { const idx = allProducts.findIndex(p=>p.id===c.id && String(p.store||'').toLowerCase()===String(getCurrentUser().name||'').toLowerCase()); if (idx>=0) allProducts[idx].qty = Math.max(0, allProducts[idx].qty - c.qty); }
+    saveAllProducts(allProducts); cart=[]; renderCart(); renderProductList(searchInput?.value || ''); invoiceModal?.classList.add('hidden'); window.dispatchEvent(new Event('dataUpdated')); alert('Recorded in Reports.');
+  });
 
-// localStorage.removeItem("currentUser");
-// console.log("✅ Current user removed");
+  /* create report helper */
+  function createReportEntry({ id, date, store, items, amount, paid = 0, status = null, customer, phone, type = "sale" }) {
+    const reports = getAllReports();
+    const itemsArr = Array.isArray(items) ? items : (items ? [items] : []);
+    const computedAmount = Number(amount) || itemsArr.reduce((s,it)=>{ const qty=Number(it?.qty ?? it?.quantity ?? 1); const line = Number(it?.total ?? (it?.price ? it.price * qty : 0)); return s + (isFinite(line) ? line : 0); }, 0);
+    const paidNum = Number(paid||0);
+    const computedStatus = status || (paidNum >= computedAmount ? 'paid' : 'unpaid');
+    const payload = { id: id || `RPT-${Date.now()}`, date: date || Date.now(), store: store || (getCurrentUser && getCurrentUser().name) || null, items: itemsArr, amount: Number(computedAmount), paid: paidNum, due: Number((computedAmount - paidNum) || 0), status: computedStatus, type, customer: customer || 'Walk-in Customer', phone: phone || '+252000000000' };
+    reports.push(payload); saveAllReports(reports); window.dispatchEvent(new Event('dataUpdated'));
+  }
 
+  /* ============= INVOICES UI ============= */
+  function makeItemRow(data = {}) {
+    const row = document.createElement('div');
+    row.className = 'grid sm:grid-cols-4 gap-2 mb-2 items-end';
+    const safeName = (data.name || data.product || '').toString().replace(/"/g,'&quot;');
+    const safePrice = Number(data.price ?? data.total ?? 0);
+    row.innerHTML = `
+      <input class="col-span-2 item-name border rounded-xl px-3 py-2" placeholder="Item name" value="${safeName}">
+      <input type="number" min="0" step="0.01" class="item-price border rounded-xl px-3 py-2" placeholder="Price" value="${safePrice}">
+      <div class="flex items-center gap-2">
+        <input readonly class="item-total flex-1 border rounded-xl px-3 py-2 bg-gray-50" value="${fmtMoney(safePrice)}">
+        <button type="button" class="remove-item px-3 py-2 rounded bg-red-500 text-white">✕</button>
+      </div>
+    `;
+    const priceEl = row.querySelector('.item-price');
+    const totalEl = row.querySelector('.item-total');
 
-  </script>
+    function recalc(){ const p = parseFloat(priceEl.value)||0; totalEl.value = fmtMoney(p); recalcInvoiceTotals(); }
+    priceEl.addEventListener('input', recalc);
+    row.querySelector('.remove-item').addEventListener('click', ()=>{ row.remove(); recalcInvoiceTotals(); });
+    return row;
+  }
+
+  function recalcInvoiceTotals(){
+    if (!invoiceItemsContainer) return;
+    const rows = Array.from(invoiceItemsContainer.querySelectorAll('.item-total'));
+    const total = rows.reduce((s,el)=>s + (Number(el.value)||0), 0);
+    amountInput && (amountInput.value = fmtMoney(total));
+    const paid = Number(paidInput?.value) || 0;
+    if (statusSelect) statusSelect.value = paid >= total && total > 0 ? 'paid' : 'unpaid';
+  }
+  paidInput?.addEventListener('input', recalcInvoiceTotals);
+
+  function resetInvoiceForm(){
+    if (!editingInvoiceId) return;
+    editingInvoiceId.value = '';
+    customerNameInput.value = '';
+    customerPhoneInput.value = '';
+    invoiceDateInput.value = fmtDate(new Date());
+    amountInput && (amountInput.value = '0.00');
+    paidInput && (paidInput.value = '');
+    if (statusSelect) statusSelect.value = 'unpaid';
+    invoiceItemsContainer && (invoiceItemsContainer.innerHTML = '');
+    invoiceItemsContainer && invoiceItemsContainer.appendChild(makeItemRow());
+    formMsg && formMsg.classList.add('hidden');
+    formMsg && (formMsg.textContent = '');
+  }
+
+  /* create/open invoice */
+  createInvoiceBtn?.addEventListener('click', () => {
+    if (!createInvoiceSection) return;
+    if (createInvoiceSection.classList.contains('hidden') || createInvoiceSection.classList.contains('hidden-section')) {
+      resetInvoiceForm();
+      createInvoiceSection.classList.remove('hidden','hidden-section');
+    } else {
+      createInvoiceSection.classList.add('hidden-section');
+    }
+  });
+  addItemBtn?.addEventListener('click', ()=>{ invoiceItemsContainer && invoiceItemsContainer.appendChild(makeItemRow()); recalcInvoiceTotals(); });
+
+  saveInvoiceBtn?.addEventListener('click', () => {
+    const user = getCurrentUser();
+    if (!user) { alert('You must be logged in.'); return; }
+    const name = customerNameInput?.value.trim();
+    const phone = customerPhoneInput?.value.trim();
+    const date = invoiceDateInput?.value || fmtDate(new Date());
+    // collect items robustly
+    const items = invoiceItemsContainer ? Array.from(invoiceItemsContainer.querySelectorAll('.grid')).map(r => {
+      const nm = r.querySelector('.item-name')?.value.trim() || '';
+      const price = parseFloat(r.querySelector('.item-price')?.value) || 0;
+      return { name: nm, price, total: price, qty: 1 };
+    }).filter(it => it.name && it.price > 0) : [];
+
+    if (!items.length) { showFormError('Add at least one item with name and price.'); return; }
+    const amount = Number(amountInput?.value) || 0;
+    const paid = Number(paidInput?.value) || 0;
+    const status = statusSelect?.value || 'unpaid';
+
+    if (!name) { showFormError('Customer name required'); return; }
+    if (!phone) { showFormError('Customer phone required'); return; }
+
+    const all = getAllInvoices();
+    const id = editingInvoiceId?.value || `INV-${Date.now()}`;
+    const payload = { id, store: user.name, date, customer: name, phone, items, amount, paid, status };
+    const idx = all.findIndex(x => x.id === id);
+    if (idx >= 0) all[idx] = payload; else all.push(payload);
+    saveAllInvoices(all);
+    resetInvoiceForm();
+    createInvoiceSection.classList.add('hidden');
+    renderInvoiceTable();
+    window.dispatchEvent(new Event('dataUpdated'));
+  });
+
+  function showFormError(msg){ formMsg && (formMsg.textContent = msg, formMsg.classList.remove('hidden')); }
+
+  /* ============= INVOICE LIST & ACTIONS ============= */
+  function filteredInvoicesForUI(){
+    const user = getCurrentUser();
+    if (!user) return [];
+    const statusVal = filterStatus?.value || 'all';
+    const searchVal = (searchName?.value || '').toLowerCase();
+    return getStoreInvoices(user.name).filter(inv => {
+      const statusOk = statusVal === 'all' ? true : inv.status === statusVal;
+      const searchOk = !searchVal || (inv.customer && inv.customer.toLowerCase().includes(searchVal)) || (inv.phone && String(inv.phone).includes(searchVal)) || (inv.id && inv.id.toLowerCase().includes(searchVal));
+      return statusOk && searchOk;
+    }).sort((a,b)=> new Date(b.date) - new Date(a.date));
+  }
+
+  function renderInvoiceTable(){
+    if (!invoiceRows) return;
+    const list = filteredInvoicesForUI();
+    invoiceRows.innerHTML = '';
+    if (!list.length) {
+      emptyStateInv && emptyStateInv.classList.remove('hidden');
+      return;
+    } else {
+      emptyStateInv && emptyStateInv.classList.add('hidden');
+    }
+    const mobile = window.matchMedia('(max-width:640px)').matches;
+    const storeName = getCurrentUser()?.name || '';
+
+    list.forEach((invObj, idx) => {
+      const balance = Math.max(0, (Number(invObj.amount)||0) - (Number(invObj.paid)||0));
+      const balanceColorClass = balance <= 0 ? 'text-emerald-600' : 'text-rose-600';
+      if (mobile) {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b';
+        tr.innerHTML = `
+          <td colspan="10" class="p-2">
+            <div class="sm-card p-3 bg-white rounded-xl shadow-sm">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-semibold">${(storeName||'S').slice(0,2).toUpperCase()}</div>
+                <div style="flex:1;">
+                  <div class="font-semibold">Invoice ${escapeHtml(invObj.id)}</div>
+                  <div class="text-sm text-gray-500">${fmtDate(invObj.date)} • ${escapeHtml(invObj.customer || '')}</div>
+                </div>
+              </div>
+              <div class="mt-3 flex items-center justify-between">
+                <div class="text-sm">${escapeHtml(invObj.phone || '')}</div>
+                <div class="text-right">
+                  <div class="font-semibold">${fmtMoney(invObj.amount)}</div>
+                  <div class="text-xs ${balanceColorClass}">${escapeHtml(invObj.status)} • ${fmtMoney(balance)}</div>
+                </div>
+              </div>
+              <div class="mt-3 flex items-center gap-2 flex-wrap">
+                <button class="action-btn p-2" data-action="edit" data-id="${invObj.id}" title="Edit"><i class="fas fa-edit"></i></button>
+                <button class="action-btn p-2" data-action="toggle" data-id="${invObj.id}" title="Toggle">${invObj.status==='paid'?'<i class="fas fa-check"></i>':'<i class="fas fa-xmark"></i>'}</button>
+                <button class="action-btn p-2" data-action="wa" data-id="${invObj.id}" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>
+                <button class="action-btn p-2" data-action="sms" data-id="${invObj.id}" title="SMS"><i class="fas fa-sms"></i></button>
+                <button class="action-btn p-2" data-action="call" data-id="${invObj.id}" title="Call"><i class="fas fa-phone"></i></button>
+                <button class="action-btn p-2" data-action="print" data-id="${invObj.id}" title="Print"><i class="fas fa-print"></i></button>
+                <button class="action-btn p-2" data-action="delete" data-id="${invObj.id}" title="Delete"><i class="fas fa-trash"></i></button>
+                <button class="action-btn p-2 share-btn" data-action="share" data-id="${invObj.id}" title="Share"><i class="fas fa-share-nodes"></i></button>
+              </div>
+            </div>
+          </td>
+        `;
+        invoiceRows.appendChild(tr);
+      } else {
+        const tr = document.createElement('tr');
+        tr.className = 'block sm:table-row border-b';
+        tr.innerHTML = `
+          <td class="p-2">${idx+1}</td>
+          <td class="p-2">${escapeHtml(invObj.id)}</td>
+          <td class="p-2">${fmtDate(invObj.date)}</td>
+          <td class="p-2">${escapeHtml(invObj.customer || '')}</td>
+          <td class="p-2">${escapeHtml(invObj.phone || '')}</td>
+          <td class="p-2 text-right">${fmtMoney(invObj.amount)}</td>
+          <td class="p-2 text-right">${fmtMoney(invObj.paid)}</td>
+          <td class="p-2 text-right ${balanceColorClass}">${fmtMoney(balance)}</td>
+          <td class="p-2"><span class="${invObj.status==='paid'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'} px-2 py-1 rounded text-xs">${escapeHtml(invObj.status)}</span></td>
+          <td class="p-2 no-print">
+            <div class="flex gap-2 flex-wrap">
+              <button class="px-2 py-1 rounded bg-blue-600 text-white" data-action="edit" data-id="${invObj.id}" title="Edit"><i class="fas fa-edit"></i></button>
+              <button class="px-2 py-1 rounded ${invObj.status==='paid'?'bg-emerald-600':'bg-red-600'} text-white" data-action="toggle" data-id="${invObj.id}" title="Toggle">${invObj.status==='paid'?'<i class="fas fa-check"></i>':'<i class="fas fa-xmark"></i>'}</button>
+              <button class="px-2 py-1 rounded bg-emerald-600 text-white" data-action="wa" data-id="${invObj.id}" title="WhatsApp"><i class="fab fa-whatsapp"></i></button>
+              <button class="px-2 py-1 rounded bg-yellow-600 text-white" data-action="sms" data-id="${invObj.id}" title="SMS"><i class="fas fa-sms"></i></button>
+              <button class="px-2 py-1 rounded bg-indigo-600 text-white" data-action="call" data-id="${invObj.id}" title="Call"><i class="fas fa-phone"></i></button>
+              <button class="px-2 py-1 rounded bg-pink-600 text-white" data-action="print" data-id="${invObj.id}" title="Print"><i class="fas fa-print"></i></button>
+              <button class="px-2 py-1 rounded bg-gray-600 text-white" data-action="delete" data-id="${invObj.id}" title="Delete"><i class="fas fa-trash"></i></button>
+              <button class="px-2 py-1 rounded share-btn" data-action="share" data-id="${invObj.id}" title="Share"><i class="fas fa-share-nodes"></i></button>
+            </div>
+          </td>
+        `;
+        invoiceRows.appendChild(tr);
+      }
+    });
+  }
+
+  /* invoice actions listener */
+  invoiceRows?.addEventListener('click', async (e) => {
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-id');
+    const action = btn.getAttribute('data-action');
+    const all = getAllInvoices();
+    const idx = all.findIndex(x => x.id === id);
+    if (idx < 0) return;
+    const user = getCurrentUser();
+    if (!user || String(all[idx].store||'').toLowerCase() !== String(user.name||'').toLowerCase()) { alert('Not allowed'); return; }
+
+    if (action === 'delete') {
+      if (confirm('Delete this invoice?')) {
+        all.splice(idx,1); saveAllInvoices(all); renderInvoiceTable(); window.dispatchEvent(new Event('dataUpdated'));
+      }
+    } else if (action === 'toggle') {
+      if (all[idx].status === 'unpaid') {
+        // toggle to paid: store prevPaid and set paid=amount
+        all[idx].prevPaid = all[idx].paid;
+        all[idx].status = 'paid';
+        all[idx].paid = Number(all[idx].amount)||0;
+      } else {
+        // toggle back to unpaid
+        all[idx].status = 'unpaid';
+        all[idx].paid = all[idx].prevPaid || 0;
+      }
+      saveAllInvoices(all); renderInvoiceTable(); window.dispatchEvent(new Event('dataUpdated'));
+    } else if (action === 'edit') {
+      const invObj = all[idx];
+      createInvoiceSection?.classList.remove('hidden','hidden-section');
+      editingInvoiceId && (editingInvoiceId.value = invObj.id);
+      customerNameInput && (customerNameInput.value = invObj.customer || '');
+      customerPhoneInput && (customerPhoneInput.value = invObj.phone || '');
+      invoiceDateInput && (invoiceDateInput.value = invObj.date || fmtDate(new Date()));
+      amountInput && (amountInput.value = fmtMoney(invObj.amount || 0));
+      paidInput && (paidInput.value = invObj.paid || 0);
+      statusSelect && (statusSelect.value = invObj.status || 'unpaid');
+      if (invoiceItemsContainer) {
+        invoiceItemsContainer.innerHTML = '';
+        (invObj.items || []).forEach(it => invoiceItemsContainer.appendChild(makeItemRow(it)));
+        if ((invObj.items || []).length === 0) invoiceItemsContainer.appendChild(makeItemRow());
+      }
+    } else if (action === 'wa') {
+      sendReminderFor(all[idx], 'wa');
+    } else if (action === 'sms') {
+      sendReminderFor(all[idx], 'sms');
+    } else if (action === 'call') {
+      const phone = cleanPhone(all[idx].phone || '');
+      if (!phone) return alert('No phone provided');
+      window.open(`tel:+${phone}`, '_self');
+    } else if (action === 'print') {
+      exportInvoicePDF(all[idx]);
+    } else if (action === 'share') {
+      // try to find a card to capture
+      const card = btn.closest('.sm-card') || btn.closest('tr') || btn.parentElement;
+      if (card) captureElementAsImage(card, `${all[idx].id}_${Date.now()}.png`);
+      else alert('Cannot locate card to share.');
+    }
+  });
+
+  /* ============= PRINT / CAPTURE ============= */
+  function printInvoice(inv){
+    const balance = Math.max(0, (Number(inv.amount)||0) - (Number(inv.paid)||0));
+    const win = window.open('','PRINT','height=650,width=900');
+    win.document.write(`<html><head><title>Invoice ${inv.id}</title><style>body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ddd;padding:8px}th{background:#f4f4f4}</style></head><body>
+    <h1>Invoice ${escapeHtml(inv.id)}</h1><p><b>Date:</b> ${fmtDate(inv.date)}<br><b>Customer:</b> ${escapeHtml(inv.customer||'Walk-in')}<br><b>Phone:</b> ${escapeHtml(inv.phone||'')}</p>
+    <table><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+    ${(inv.items||[]).map(it=>`<tr><td>${escapeHtml(it.name||it.product||'Item')}</td><td>${it.qty||1}</td><td>${fmtMoney(it.price||0)}</td><td>${fmtMoney(it.total||((it.price||0)*(it.qty||1)))}</td></tr>`).join('')}
+    </table><p><b>Amount:</b> ${fmtMoney(inv.amount)}<br><b>Paid:</b> ${fmtMoney(inv.paid)}<br><b>Balance:</b> ${fmtMoney(balance)}<br><b>Status:</b> ${escapeHtml(inv.status)}</p></body></html>`);
+    win.document.close(); win.focus(); win.print(); win.close();
+  }
+
+  function captureElementAsImage(el, filename='capture.png'){
+    if (!el) return alert('Nothing to capture');
+    if (typeof html2canvas === 'undefined') {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      s.onload = () => doCapture();
+      s.onerror = () => alert('Failed to load capture library.');
+      document.head.appendChild(s);
+    } else doCapture();
+
+    function doCapture(){
+      html2canvas(el, { scale: 2, useCORS:true }).then(canvas=>{
+        const data = canvas.toDataURL('image/png');
+        const a = document.createElement('a'); a.href = data; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      }).catch(err => { console.error(err); alert('Capture failed'); });
+    }
+  }
+
+  /* ============= FILTERS / CLEAR PAID ============= */
+  filterStatus?.addEventListener('change', renderInvoiceTable);
+  searchName?.addEventListener('input', renderInvoiceTable);
+  clearPaidBtn?.addEventListener('click', ()=>{
+    const user = getCurrentUser(); if (!user) return;
+    if (!confirm('Clear all PAID invoices?')) return;
+    let all = getAllInvoices();
+    all = all.filter(inv => !(String(inv.store||'').toLowerCase() === String(user.name||'').toLowerCase() && inv.status === 'paid'));
+    saveAllInvoices(all); renderInvoiceTable(); window.dispatchEvent(new Event('dataUpdated'));
+  });
+
+  /* ============= REMINDERS / MESSAGING ============= */
+
+  function sendReminderForSingle(invObj, method){
+    if (!invObj) return;
+    const phone = cleanPhone(invObj.phone || '');
+    if (!phone) return alert('No phone number for this invoice.');
+    const balance = Math.max(0, (Number(invObj.amount)||0) - (Number(invObj.paid)||0));
+    const tpl = lsGet(LS_MSG_TPL, {});
+    const defaultWa = tpl.reminder_wa || "Xasuusin: {customer}, lacagta lagugu leeyahay waa: {balance}. Fadlan iska bixi dukaanka {store} ({phone}).";
+    const defaultSms = tpl.reminder_sms || defaultWa;
+    const template = method === 'wa' ? defaultWa : defaultSms;
+    const storeName = getCurrentUser()?.name || '';
+    const storePhone = (getCurrentUser()?.phone) || '';
+    const msg = template.replace(/\{customer\}/gi, invObj.customer || '')
+      .replace(/\{id\}/gi, invObj.id || '')
+      .replace(/\{balance\}/gi, fmtMoney(balance))
+      .replace(/\{store\}/gi, storeName)
+      .replace(/\{phone\}/gi, storePhone);
+    if (method === 'wa') {
+      window.open(`https://wa.me/${phone.replace('+','')}?text=${encodeURIComponent(msg)}`, '_blank');
+    } else {
+      window.open(`sms:+${phone}?&body=${encodeURIComponent(msg)}`, '_blank');
+    }
+  }
+
+  function sendReminderForGrouped(group, method){
+    const phone = cleanPhone(group.phone || '');
+    if (!phone) return alert('No phone for group.');
+    const tpl = lsGet(LS_MSG_TPL, {});
+    const defaultWa = tpl.reminder_wa || "Xasuusin: {customer}, lacagta lagugu leeyahay waa: {balance}. Fadlan iska bixi dukaanka {store} ({phone}).";
+    const defaultSms = tpl.reminder_sms || defaultWa;
+    const template = method === 'wa' ? defaultWa : defaultSms;
+    const storeName = getCurrentUser()?.name || '';
+    const storePhone = (getCurrentUser()?.phone) || '';
+    const ids = group.invoices.map(i => i.id).join(',');
+    const msg = template.replace(/\{customer\}/gi, group.customer || '')
+      .replace(/\{id\}/gi, ids)
+      .replace(/\{balance\}/gi, fmtMoney(group.totalBalance || 0))
+      .replace(/\{store\}/gi, storeName)
+      .replace(/\{phone\}/gi, storePhone);
+    if (method === 'wa') {
+      window.open(`https://wa.me/${phone.replace('+','')}?text=${encodeURIComponent(msg)}`, '_blank');
+    } else {
+      window.open(`sms:+${phone}?&body=${encodeURIComponent(msg)}`, '_blank');
+    }
+  }
+
+  function createReminderConfirmModal(){
+    let modal = document.getElementById('reminderConfirmModal');
+    if (modal) return modal;
+    const html = `
+      <div id="reminderConfirmModal" class="hidden fixed inset-0 z-60 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50"></div>
+        <div class="relative max-w-lg w-full bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <h3 id="reminderConfirmHeader" class="text-lg font-semibold mb-2"></h3>
+          <div id="reminderConfirmBody" class="mb-4 whitespace-pre-line"></div>
+          <div class="flex justify-end gap-2">
+            <button id="reminderCancelBtn" class="px-3 py-2 rounded bg-gray-200">Cancel</button>
+            <button id="reminderOkBtn" class="px-3 py-2 rounded bg-emerald-600 text-white">OK</button>
+          </div>
+        </div>
+      </div>
+    `;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    document.body.appendChild(wrapper);
+    return document.getElementById('reminderConfirmModal');
+  }
+
+  function showReminderConfirm(group, progressStr, messageText){
+    return new Promise((resolve) => {
+      const modal = createReminderConfirmModal();
+      const header = modal.querySelector('#reminderConfirmHeader');
+      const body = modal.querySelector('#reminderConfirmBody');
+      const okBtn = modal.querySelector('#reminderOkBtn');
+      const cancelBtn = modal.querySelector('#reminderCancelBtn');
+      header.textContent = `${progressStr} Xasuusin ${group.customer || ''}`;
+      body.textContent = messageText;
+      function cleanup(){ modal.classList.add('hidden'); okBtn.removeEventListener('click', onOk); cancelBtn.removeEventListener('click', onCancel); }
+      function onOk(){ cleanup(); resolve(true); }
+      function onCancel(){ cleanup(); resolve(false); }
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+      modal.classList.remove('hidden');
+      okBtn.focus();
+    });
+  }
+
+  async function sendAllRemindersFlow(method){
+    const user = getCurrentUser();
+    if (!user) return alert('Login required');
+
+    const invoices = filteredInvoicesForUI().filter(inv => {
+      const bal = (Number(inv.amount)||0) - (Number(inv.paid)||0);
+      return inv.phone && bal > 0;
+    });
+
+    if (!invoices.length) return alert('No customers need reminders based on current filter/search.');
+
+    const groupsMap = new Map();
+    invoices.forEach(inv => {
+      const phone = cleanPhone(inv.phone || '');
+      const customer = (inv.customer || '').trim();
+      const key = `${phone}||${customer}`;
+      const bal = Math.max(0, (Number(inv.amount)||0) - (Number(inv.paid)||0));
+      if (!groupsMap.has(key)) groupsMap.set(key, { customer, phone, totalBalance: 0, invoices: [] });
+      const g = groupsMap.get(key);
+      g.totalBalance += bal;
+      g.invoices.push(inv);
+    });
+
+    const groups = Array.from(groupsMap.values());
+    for (let i=0;i<groups.length;i++){
+      const g = groups[i];
+      const progressStr = `${i+1}/${groups.length}`;
+      const storeName = user.name || '';
+      const storePhone = user.phone || '';
+      const preview = `Xasuusin: ${g.customer}\nLacagta lagugu leeyahay waa: ${fmtMoney(g.totalBalance)}\nFadlan iska bixi dukaanka ${storeName} (${storePhone})`;
+      const confirmed = await showReminderConfirm(g, progressStr, preview);
+      if (!confirmed) {
+        return;
+      }
+      sendReminderForGrouped(g, method);
+      await new Promise(res => setTimeout(res, 300));
+    }
+  }
+
+  function sendReminderFor(invObj, method){
+    const phone = cleanPhone(invObj.phone || '');
+    if (!phone) return alert('No phone provided');
+    const user = getCurrentUser();
+    const storeName = user?.name || '';
+    const storePhone = user?.phone || '';
+    const balance = Math.max(0, (Number(invObj.amount)||0) - (Number(invObj.paid)||0));
+    const preview = `Xasuusin: ${invObj.customer}\nLacagta lagugu leeyahay waa: ${fmtMoney(balance)}\nFadlan iska bixi dukaanka ${storeName} (${storePhone})`;
+    showReminderConfirm({ customer: invObj.customer, phone: invObj.phone, invoices: [invObj], totalBalance: balance }, `1/1`, preview).then(ok=>{
+      if (ok) sendReminderForSingle(invObj, method);
+    });
+  }
+
+  sendAllRemindersBtn?.addEventListener('click', async ()=>{
+    const method = (reminderMethod?.value) || 'wa';
+    await sendAllRemindersFlow(method);
+  });
+
+  /* ============= EXPORT INVOICE TO PDF (single & all) ============= */
+  async function exportInvoicePDF(inv) {
+    // uses jspdf (umd) available via included script tag in HTML
+    if (!window.jspdf) {
+      alert('Printing library not loaded.');
+      return;
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.setFontSize(18);
+    doc.text("Invoice", 14, 20);
+
+    const store = getCurrentUser()?.name || "Supermarket";
+    doc.setFontSize(12);
+    doc.text(`${store}`, 14, 30);
+    doc.text(`Date: ${fmtDate(inv.date)}`, 14, 38);
+    doc.text(`Invoice ID: ${inv.id}`, 14, 46);
+
+    doc.text(`Customer: ${inv.customer || ""}`, 14, 54);
+    doc.text(`Phone: ${inv.phone || ""}`, 14, 62);
+
+    let y = 75;
+    doc.setFontSize(12);
+    doc.text("Items", 14, y);
+    doc.text("Qty", 100, y);
+    doc.text("Price", 130, y);
+    doc.text("Total", 170, y);
+
+    y += 8;
+    (inv.items || []).forEach(item => {
+      doc.text(item.name || "", 14, y);
+      doc.text(String(item.qty || item.quantity || 1), 100, y, { align: "right" });
+      doc.text(fmtMoney(item.price || 0), 130, y, { align: "right" });
+      doc.text(fmtMoney(item.total || ((item.price || 0) * (item.qty || 1))), 170, y, { align: "right" });
+      y += 8;
+      if (y > 270) { doc.addPage(); y = 20; }
+    });
+
+    y += 10;
+    const balance = (Number(inv.amount) || 0) - (Number(inv.paid) || 0);
+
+    doc.text(`Amount: ${fmtMoney(inv.amount)}`, 130, y); y += 8;
+    doc.text(`Paid: ${fmtMoney(inv.paid)}`, 130, y); y += 8;
+    doc.text(`Balance: ${fmtMoney(balance)}`, 130, y); y += 8;
+    doc.text(`Status: ${inv.status}`, 130, y);
+
+    y += 20;
+    doc.setFontSize(10);
+    doc.text("Thank you for shopping with us!", 14, y);
+
+    const fname = `invoice_${inv.id}.pdf`;
+    doc.save(fname);
+  }
+
+  // Export all invoices to single PDF (table) - bound to settings export button
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest && e.target.closest('#exportInvoicesPdf');
+    if (!el) return;
+    const invoices = getStoreInvoices(getCurrentUser()?.name || '') || [];
+    if (!invoices.length) return alert('No invoices to export.');
+    if (!window.jspdf) return alert('PDF library not loaded.');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Invoices Report", 14, 20);
+    const rows = invoices.map((inv,i)=>{
+      const balance = (Number(inv.amount)||0) - (Number(inv.paid)||0);
+      return [String(i+1), inv.id, fmtDate(inv.date), inv.customer || '', fmtMoney(inv.amount), fmtMoney(inv.paid), fmtMoney(balance), inv.status];
+    });
+    if (doc.autoTable) {
+      doc.autoTable({
+        startY: 30,
+        head: [["#", "ID", "Date", "Customer", "Amount", "Paid", "Balance", "Status"]],
+        body: rows
+      });
+    } else {
+      let y = 30;
+      rows.forEach(r => { doc.text(r.join(" | "), 14, y); y += 8; if (y > 270) { doc.addPage(); y = 20; } });
+    }
+    doc.save("invoices.pdf");
+    const msgEl = document.getElementById('settingsExportMsg');
+    if (msgEl) { msgEl.textContent = "Downloaded invoices.pdf"; msgEl.classList.remove('hidden'); setTimeout(()=> msgEl.classList.add('hidden'), 2000); }
+  });
+
+  /* ============= SETTINGS MODULE (green cog near store name) ============= */
+  (function SettingsModule(){
+    const LS_MSG = LS_MSG_TPL;
+    const LS_NOTICE = LS_NOTICES;
+    const LS_LANG = LS_APP_LANG;
+    const LS_DARK_KEY = LS_DARK;
+
+    function lsGetLocal(k, fallback){ return lsGet(k, fallback); }
+    function lsSetLocal(k,v){ lsSet(k,v); }
+
+    // inject settings modal html once
+    const settingsHtml = `
+    <div id="appSettingsModal" class="hidden fixed inset-0 z-70 flex items-start justify-center p-4">
+      <div class="absolute inset-0 bg-black/50"></div>
+      <div class="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-auto max-h-[90vh]">
+        <div class="flex items-center justify-between p-4 border-b">
+          <h2 id="settingsTitle" class="text-lg font-semibold">Settings & Utilities</h2>
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-2 text-sm"><input id="settingsDarkMode" type="checkbox"> Dark</label>
+            <button id="settingsCloseBtn" class="px-3 py-1 rounded bg-gray-200">Close</button>
+          </div>
+        </div>
+        <div class="flex gap-4 p-4">
+          <nav id="settingsNav" class="w-56">
+            <ul class="space-y-2">
+              <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="lang">Language</button></li>
+              <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="user">Edit User</button></li>
+              <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="messages">Messages</button></li>
+              <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="notices">Notices</button></li>
+              <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="help">Help</button></li>
+              <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="export">Export</button></li>
+            </ul>
+          </nav>
+          <div class="flex-1" id="settingsContent">
+            <div class="settings-panel hidden" data-panel="lang">
+              <h3 class="font-semibold mb-2">Language</h3>
+              <div class="flex gap-2 items-center mb-4">
+                <select id="settingsLangSelect" class="border rounded px-3 py-2">
+                  <option value="en">English</option>
+                  <option value="so">Somali</option>
+                </select>
+                <button id="saveLangBtn" class="px-3 py-2 bg-blue-600 text-white rounded">Save</button>
+              </div>
+            </div>
+            <div class="settings-panel hidden" data-panel="user">
+              <h3 class="font-semibold mb-2">Edit User</h3>
+              <form id="settingsEditUserForm" class="space-y-2 p-2">
+                <div><label class="block text-sm">Supermarket Name</label><input id="settingsUserName" class="border rounded px-2 py-1 w-full"></div>
+                <div><label class="block text-sm">Phone</label><input id="settingsUserPhone" class="border rounded px-2 py-1 w-full"></div>
+                <div><label class="block text-sm">Address</label><input id="settingsUserAddress" class="border rounded px-2 py-1 w-full"></div>
+                <div><label class="block text-sm">Email</label><input id="settingsUserEmail" class="border rounded px-2 py-1 w-full"></div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div><label class="block text-sm">Password</label><input id="settingsUserPassword" type="password" class="border rounded px-2 py-1 w-full"></div>
+                  <div><label class="block text-sm">Confirm</label><input id="settingsUserPasswordConfirm" type="password" class="border rounded px-2 py-1 w-full"></div>
+                </div>
+                <div class="flex gap-2">
+                  <button id="settingsSaveUserBtn" class="px-3 py-2 bg-emerald-600 text-white rounded">Save Changes</button>
+                  <button id="settingsCancelUserBtn" type="button" class="px-3 py-2 bg-gray-200 rounded">Cancel</button>
+                </div>
+                <div id="settingsUserMsg" class="text-sm text-red-600 hidden"></div>
+              </form>
+            </div>
+            <div class="settings-panel hidden" data-panel="messages">
+              <h3 class="font-semibold mb-2">WhatsApp / SMS Templates</h3>
+              <p class="text-sm mb-2">Use placeholders: <code>{customer}</code>, <code>{id}</code>, <code>{balance}</code>, <code>{store}</code>, <code>{phone}</code></p>
+              <div class="space-y-2 p-2">
+                <div>
+                  <label class="block text-sm">WhatsApp Template</label>
+                  <textarea id="settingsWaTpl" rows="3" class="w-full border rounded p-2"></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm">SMS Template</label>
+                  <textarea id="settingsSmsTpl" rows="3" class="w-full border rounded p-2"></textarea>
+                </div>
+                <div class="flex gap-2">
+                  <button id="settingsSaveMsgBtn" class="px-3 py-2 bg-blue-600 text-white rounded">Save</button>
+                  <button id="settingsResetMsgBtn" class="px-3 py-2 bg-gray-200 rounded">Reset Defaults</button>
+                </div>
+                <div id="settingsMsgStatus" class="text-sm text-green-600 hidden"></div>
+              </div>
+            </div>
+            <div class="settings-panel hidden" data-panel="notices">
+              <h3 class="font-semibold mb-2">Notices</h3>
+              <div class="mb-2">
+                <button id="settingsAddNoticeBtn" class="px-3 py-2 bg-blue-600 text-white rounded">Add Notice</button>
+                <button id="settingsSeedNoticesBtn" class="px-3 py-2 bg-gray-200 rounded">Seed Defaults</button>
+              </div>
+              <div id="settingsNoticesList" class="space-y-2 max-h-64 overflow-auto p-2"></div>
+            </div>
+            <div class="settings-panel hidden" data-panel="help">
+              <h3 class="font-semibold mb-2">Help & Guidance</h3>
+              <div class="prose max-w-none p-2">
+                <p>Switch language, edit your supermarket profile, add notices, and export invoices.</p>
+              </div>
+            </div>
+            <div class="settings-panel hidden" data-panel="export">
+              <h3 class="font-semibold mb-2">Export / Download</h3>
+              <p class="text-sm mb-2">Download invoices as PDF only.</p>
+              <div class="flex gap-2 mb-4 p-2">
+                <button id="exportInvoicesPdf" class="px-3 py-2 bg-red-600 text-white rounded">Download PDF</button>
+              </div>
+              <div id="settingsExportMsg" class="text-sm text-green-600 hidden"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    `;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = settingsHtml;
+    document.body.appendChild(wrapper);
+
+    const modal = document.getElementById('appSettingsModal');
+    const settingsCloseBtn = document.getElementById('settingsCloseBtn');
+    const darkToggle = document.getElementById('settingsDarkMode');
+    const tabs = Array.from(document.querySelectorAll('.settings-tab'));
+    const panels = Array.from(document.querySelectorAll('.settings-panel'));
+
+    function openSettings(){ modal && modal.classList.remove('hidden'); showSettingsTab('user'); populateSettingsForms(); }
+    function closeSettings(){ modal && modal.classList.add('hidden'); }
+
+    settingsCloseBtn?.addEventListener('click', closeSettings);
+    modal?.addEventListener('click', (e)=>{ if (e.target === modal) closeSettings(); });
+
+    tabs.forEach(t => t.addEventListener('click', ()=> showSettingsTab(t.dataset.tab)));
+    function showSettingsTab(tabName){
+      panels.forEach(p => p.dataset.panel === tabName ? p.classList.remove('hidden') : p.classList.add('hidden'));
+      tabs.forEach(tb => tb.dataset.tab === tabName ? tb.classList.add('bg-gray-100') : tb.classList.remove('bg-gray-100'));
+    }
+
+    function populateSettingsForms(){
+      const lang = localStorage.getItem(LS_APP_LANG) || 'en';
+      const langSelect = document.getElementById('settingsLangSelect');
+      if (langSelect) langSelect.value = lang;
+
+      const current = getCurrentUser() || {};
+      document.getElementById('settingsUserName').value = current?.name || '';
+      document.getElementById('settingsUserPhone').value = current?.phone || '';
+      document.getElementById('settingsUserAddress').value = current?.address || '';
+      document.getElementById('settingsUserEmail').value = current?.email || '';
+      document.getElementById('settingsUserPassword').value = '';
+      document.getElementById('settingsUserPasswordConfirm').value = '';
+
+      const tpl = lsGetLocal(LS_MSG) || {};
+      document.getElementById('settingsWaTpl').value = tpl.reminder_wa || '';
+      document.getElementById('settingsSmsTpl').value = tpl.reminder_sms || '';
+
+      // dark
+      const dark = lsGetLocal(LS_DARK_KEY) || false;
+      if (dark) document.body.classList.add('dark'); else document.body.classList.remove('dark');
+      if (darkToggle) darkToggle.checked = !!dark;
+
+      renderNoticesList();
+    }
+
+    /* Language Save */
+    document.getElementById('saveLangBtn')?.addEventListener('click', ()=> {
+      const sel = document.getElementById('settingsLangSelect'); if (!sel) return;
+      const lang = sel.value || 'en'; localStorage.setItem(LS_APP_LANG, lang);
+      applyLanguage(lang);
+      alert('Language saved.');
+    });
+
+    /* User Save */
+    document.getElementById('settingsSaveUserBtn')?.addEventListener('click', (ev)=> {
+      ev.preventDefault();
+      const name = document.getElementById('settingsUserName').value.trim();
+      const phone = document.getElementById('settingsUserPhone').value.trim();
+      const address = document.getElementById('settingsUserAddress').value.trim();
+      const email = document.getElementById('settingsUserEmail').value.trim();
+      const pass = document.getElementById('settingsUserPassword').value;
+      const pass2 = document.getElementById('settingsUserPasswordConfirm').value;
+      const msgEl = document.getElementById('settingsUserMsg');
+      msgEl.classList.add('hidden'); msgEl.textContent = '';
+
+      if (!name || !phone || !address || !email) { msgEl.textContent = 'All fields required'; msgEl.classList.remove('hidden'); return; }
+      if (pass || pass2) {
+        if (pass !== pass2) { msgEl.textContent = 'Passwords do not match'; msgEl.classList.remove('hidden'); return; }
+        if (pass.length < 4) { msgEl.textContent = 'Password too short'; msgEl.classList.remove('hidden'); return; }
+      }
+      const users = lsGetLocal(LS_USERS) || [];
+      const current = getCurrentUser();
+      if (!current) { msgEl.textContent = 'No logged-in user'; msgEl.classList.remove('hidden'); return; }
+      const idx = users.findIndex(u => String(u.name||'').toLowerCase() === String(current.name||'').toLowerCase());
+      const newUser = { ...current, name, phone, address, email };
+      if (pass) newUser.password = pass;
+      if (idx >= 0) users[idx] = newUser; else users.push(newUser);
+      lsSetLocal(LS_USERS, users);
+      setCurrentUser(newUser);
+      try{ loadDashboard(); }catch(e){console.error(e);}
+      window.dispatchEvent(new Event('dataUpdated'));
+      msgEl.textContent = 'Saved.'; msgEl.classList.remove('hidden'); msgEl.style.color = 'green';
+      setTimeout(()=> { msgEl.classList.add('hidden'); msgEl.style.color=''; }, 1500);
+    });
+    document.getElementById('settingsCancelUserBtn')?.addEventListener('click', ()=> populateSettingsForms());
+
+    /* Messages save/reset */
+    document.getElementById('settingsSaveMsgBtn')?.addEventListener('click', ()=> {
+      const wa = document.getElementById('settingsWaTpl').value.trim();
+      const sms = document.getElementById('settingsSmsTpl').value.trim();
+      lsSetLocal(LS_MSG, { reminder_wa: wa, reminder_sms: sms });
+      const s = document.getElementById('settingsMsgStatus'); s.textContent = 'Saved'; s.classList.remove('hidden');
+      setTimeout(()=> s.classList.add('hidden'), 1400);
+    });
+    document.getElementById('settingsResetMsgBtn')?.addEventListener('click', ()=> {
+      if (!confirm('Reset message templates to defaults?')) return;
+      lsSetLocal(LS_MSG, {
+        reminder_wa: "Xasuusin: {customer}, lacagta lagugu leeyahay waa: {balance}.\nFadlan iska bixi dukaanka {store} ({phone}).",
+        reminder_sms: "Xasuusin: {customer}, lacagta lagugu leeyahay waa: {balance}. Fadlan iska bixi dukaanka {store} ({phone})."
+      });
+      populateSettingsForms();
+      const s = document.getElementById('settingsMsgStatus'); s.textContent = 'Reset to defaults'; s.classList.remove('hidden');
+      setTimeout(()=> s.classList.add('hidden'), 1400);
+    });
+
+    /* Notices */
+    function renderNoticesList(){
+      const listEl = document.getElementById('settingsNoticesList');
+      if (!listEl) return;
+      const notices = lsGetLocal(LS_NOTICE) || [];
+      listEl.innerHTML = '';
+      notices.forEach(n => {
+        const div = document.createElement('div');
+        div.className = 'p-2 border rounded';
+        div.innerHTML = `<div class="flex justify-between items-start"><div><strong>${escapeHtml(n.title)}</strong><div class="text-sm text-gray-600">${new Date(n.created).toLocaleString()}</div></div>
+          <div class="flex gap-1"><button class="notice-edit px-2 py-1 bg-yellow-400 text-white rounded" data-id="${n.id}">Edit</button><button class="notice-del px-2 py-1 bg-red-600 text-white rounded" data-id="${n.id}">Del</button></div></div>
+          <div class="mt-2 text-sm">${escapeHtml(n.body)}</div>`;
+        listEl.appendChild(div);
+      });
+      // attach listeners
+      listEl.querySelectorAll('.notice-del').forEach(b => b.addEventListener('click', (ev)=>{
+        const id = b.dataset.id; if (!confirm('Delete notice?')) return;
+        let arr = lsGetLocal(LS_NOTICE) || []; arr = arr.filter(x=>x.id!==id); lsSetLocal(LS_NOTICE, arr); renderNoticesList();
+      }));
+      listEl.querySelectorAll('.notice-edit').forEach(b => b.addEventListener('click', (ev)=>{
+        const id = b.dataset.id; const arr = lsGetLocal(LS_NOTICE) || []; const found = arr.find(x=>x.id===id); if (!found) return alert('Notice not found');
+        const title = prompt('Title', found.title); if (title === null) return;
+        const body = prompt('Body', found.body); if (body === null) return;
+        found.title = title; found.body = body; lsSetLocal(LS_NOTICE, arr); renderNoticesList();
+      }));
+    }
+
+    document.getElementById('settingsAddNoticeBtn')?.addEventListener('click', ()=>{
+      const title = prompt('Notice title'); if (!title) return;
+      const body = prompt('Notice body') || '';
+      const notices = lsGetLocal(LS_NOTICE) || [];
+      notices.unshift({ id:`N-${Date.now()}`, title, body, pinned:false, created: Date.now() });
+      lsSetLocal(LS_NOTICE, notices);
+      renderNoticesList();
+    });
+    document.getElementById('settingsSeedNoticesBtn')?.addEventListener('click', ()=>{
+      if (!confirm('Seed sample notices? This will add more notices to the list.')) return;
+      const seed = [
+        { id:`N-${Date.now()}-1`, title:'Tip', body:'Use export to backup invoices.', pinned:false, created: Date.now() },
+        { id:`N-${Date.now()}-2`, title:'Reminder', body:'Set your message templates in Settings.', pinned:false, created: Date.now() }
+      ];
+      const arr = (lsGetLocal(LS_NOTICE)||[]).concat(seed);
+      lsSetLocal(LS_NOTICE, arr);
+      renderNoticesList();
+    });
+
+    /* Dark Mode */
+    darkToggle?.addEventListener('change', (e)=>{
+      const on = !!e.target.checked;
+      lsSetLocal(LS_DARK_KEY, on);
+      if (on) document.body.classList.add('dark'); else document.body.classList.remove('dark');
+    });
+
+    /* Expose AppSettings - createStoreSettingsBtn will be used externally too */
+    window.AppSettings = {
+      open: openSettings,
+      close: closeSettings,
+      getTemplates: ()=> lsGetLocal(LS_MSG),
+      getNotices: ()=> lsGetLocal(LS_NOTICE),
+      applyLanguage: (lang) => { localStorage.setItem(LS_LANG, lang); applyLanguage(lang); },
+      createStoreSettingsBtn: createStoreSettingsBtn
+    };
+
+    /* Inject a green settings cog next to the store display (createStoreSettingsBtn) */
+    function createStoreSettingsBtn(){
+      if (document.querySelector('.storeSettingsBtn')) return;
+      const target = document.querySelector('#storeDisplayDesktop')
+        || document.querySelector('.store-display')
+        || document.querySelector('.store-name')
+        || document.querySelector('[data-store-name]');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'storeSettingsBtn inline-flex items-center gap-2 ml-2 px-2 py-1 rounded bg-emerald-600 text-white';
+      btn.title = 'Settings';
+      btn.innerHTML = '<i class="fas fa-cog"></i>';
+      btn.addEventListener('click', ()=> openSettings());
+      if (target && target.parentNode) {
+        if (target.nextSibling) target.parentNode.insertBefore(btn, target.nextSibling);
+        else target.parentNode.appendChild(btn);
+      } else {
+        // fallback fixed
+        btn.classList.add('fixed','right-4','top-4','z-60');
+        document.body.appendChild(btn);
+      }
+    }
+    createStoreSettingsBtn();
+
+  })(); // SettingsModule end
+
+  /* ============= REPORTS RENDER & ACTIONS ============= */
+  function renderReports(){
+    const user = getCurrentUser(); if (!user) return;
+    const all = getAllReports().filter(r => String(r.store||'').toLowerCase() === String(user.name||'').toLowerCase());
+    if (!reportsRows) return;
+    reportsRows.innerHTML = '';
+    if (!all.length) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="11" class="text-center py-6">No reports</td>`;
+      reportsRows.appendChild(tr);
+    } else {
+      let totalItems = 0, totalSales = 0;
+      all.forEach((r, idx) => {
+        totalItems += (r.items || []).length;
+        totalSales += Number(r.amount) || 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="p-2">${idx+1}</td>
+          <td class="p-2">${escapeHtml((r.items||[]).map(it=>it.name).join(', '))}</td>
+          <td class="p-2">${(r.items||[]).reduce((s,it)=>s + (Number(it.qty)||0),0)}</td>
+          <td class="p-2">${fmtMoney(r.amount)}</td>
+          <td class="p-2">${fmtMoney(r.paid||0)}</td>
+          <td class="p-2">${fmtMoney(r.amount - (r.paid||0))}</td>
+          <td class="p-2">${escapeHtml(r.status)}</td>
+          <td class="p-2">${escapeHtml(r.customer||'')}</td>
+          <td class="p-2">${escapeHtml(r.phone||'')}</td>
+          <td class="p-2">${fmtDateTime(r.date)}</td>
+          <td class="p-2 no-print"><button class="px-2 py-1 bg-red-600 text-white rounded" data-report-delete="${r.id}">Del</button></td>`;
+        reportsRows.appendChild(tr);
+      });
+      reportsTotalItems && (reportsTotalItems.textContent = totalItems);
+      reportsTotalSales && (reportsTotalSales.textContent = fmtMoney(totalSales));
+    }
+  }
+
+  // delete single report from table
+  reportsRows?.addEventListener('click', (e)=>{
+    const btn = e.target.closest('button[data-report-delete]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-report-delete');
+    if (!confirm('Delete this report entry?')) return;
+    let all = getAllReports();
+    const idx = all.findIndex(r => r.id === id);
+    if (idx >= 0) { all.splice(idx,1); saveAllReports(all); renderReports(); window.dispatchEvent(new Event('dataUpdated')); }
+  });
+
+  // Delete all reports (bound to reportsDeleteAll in HTML)
+  reportsDeleteAll?.addEventListener('click', ()=> {
+    if (!confirm('Delete all reports?')) return;
+    const user = getCurrentUser(); if (!user) return;
+    let all = getAllReports();
+    all = all.filter(r => String(r.store||'').toLowerCase() !== String(user.name||'').toLowerCase());
+    saveAllReports(all); renderReports(); window.dispatchEvent(new Event('dataUpdated'));
+  });
+
+  // export reports PDF (if button exists)
+  reportsExportPdf?.addEventListener('click', ()=>{
+    const user = getCurrentUser(); if (!user) return;
+    const all = getAllReports().filter(r => String(r.store||'').toLowerCase() === String(user.name||'').toLowerCase());
+    if (!all.length) return alert('No reports to export.');
+    if (!window.jspdf) return alert('PDF library not loaded.');
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Reports", 14, 20);
+    let y=30;
+    all.forEach((r, i) => {
+      doc.setFontSize(12);
+      doc.text(`${i+1}. ${fmtDate(r.date)} - ${r.customer || ''} - ${fmtMoney(r.amount)} (${r.status})`, 14, y);
+      y += 8;
+      if (y > 270) { doc.addPage(); y = 20; }
+    });
+    doc.save(`reports_${fmtDate(new Date())}.pdf`);
+  });
+
+  /* ============= INITIAL LOAD & Dark Mode apply ============= */
+  (function boot(){
+    const current = getCurrentUser();
+    // apply dark mode from storage
+    const dark = lsGet(LS_DARK, false);
+    if (dark) document.body.classList.add('dark'); else document.body.classList.remove('dark');
+
+    if (current) {
+      loadDashboard();
+    } else {
+      authSection?.classList.remove('hidden');
+      dashboardSection?.classList.add('hidden');
+      showLoginForm();
+    }
+    // ensure Settings cog (in case settings module loaded before)
+    try { if (window.AppSettings && typeof window.AppSettings.createStoreSettingsBtn === 'function') window.AppSettings.createStoreSettingsBtn(); } catch(e){}
+  })();
+
+  /* ============= Utility: expose some functions for debug / other modules ============= */
+  window._SupermarketApp = {
+    getAllInvoices,
+    getAllProducts,
+    getAllReports,
+    getCurrentUser,
+    setCurrentUser,
+    exportInvoicePDF,
+    applyLanguage
+  };
+
+})(); // end auth.js
+
+</script>
 </body>
 </html>
-
-
-
-
-
