@@ -83,6 +83,7 @@
           if (!exists) existing.push(u);
         });
         saveUsers(existing);
+        toast('Migrated legacy users', 'success', 1800);
       }
     } catch (e) { console.warn('Migration failed', e); }
   }
@@ -731,7 +732,8 @@
     productRows.innerHTML = ''; productCards.innerHTML = '';
     const emptyEl = document.getElementById('emptyState');
     if (!items.length) { emptyEl && emptyEl.classList.remove('hidden'); return; } else emptyEl && emptyEl.classList.add('hidden');
-
+  
+    // desktop table
     items.forEach((p, idx) => {
       const tr = document.createElement('tr');
       tr.className = 'border-b';
@@ -751,29 +753,33 @@
       `;
       productRows.appendChild(tr);
     });
-
+  
+    // mobile cards
     items.forEach((p) => {
       const card = document.createElement('div');
-      card.className = 'bg-white dark:bg-gray-800 rounded-xl p-3 shadow flex flex-col';
+      card.className = 'bg-white dark:bg-gray-800 rounded-xl p-3 shadow flex flex-col gap-2';
       card.innerHTML = `
-        <div class="flex items-center justify-between">
-          <div>
-            <h4 class="font-semibold">${escapeHtml(p.name)}</h4>
-            <div class="text-sm text-gray-500">Price: ${Number(p.price||0).toFixed(2)} | Qty: ${p.qty}</div>
+        <div class="flex justify-between items-start">
+          <div class="flex flex-col gap-1">
+            <h4 class="font-semibold text-lg">${escapeHtml(p.name)}</h4>
+            <div class="text-sm text-gray-500">Cost: ${Number(p.cost||0).toFixed(2)}</div>
+            <div class="text-sm text-gray-500">Price: ${Number(p.price||0).toFixed(2)}</div>
+            <div class="text-sm text-gray-500">Qty: ${p.qty}</div>
           </div>
-          <div class="flex flex-col items-end gap-2">
-            <div class="text-sm font-semibold">${Number(p.price||0).toFixed(2)}</div>
-            <div class="flex gap-1">
-              <button class="action-icon" data-action="buy" data-id="${p.id}" title="Add to cart"><i class="fa-solid fa-cart-shopping"></i></button>
-              <button class="action-icon" data-action="edit" data-id="${p.id}" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
-              <button class="action-icon text-red-600" data-action="delete" data-id="${p.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
-            </div>
+        </div>
+        <div class="flex justify-between items-center mt-2">
+          <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">${Number(p.price||0).toFixed(2)}</div>
+          <div class="flex gap-2">
+            <button class="action-icon" data-action="buy" data-id="${p.id}" title="Add to cart"><i class="fa-solid fa-cart-shopping"></i></button>
+            <button class="action-icon" data-action="edit" data-id="${p.id}" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button class="action-icon text-red-600" data-action="delete" data-id="${p.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
           </div>
         </div>
       `;
       productCards.appendChild(card);
     });
   }
+  
 
   // search
   searchInput?.addEventListener('input', e => renderProductList(e.target.value));
@@ -1687,6 +1693,11 @@ function openSettingsModal() {
             <ul class="space-y-2">
               <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="messages">Messages</button></li>
               <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="help">Help</button></li>
+              <li>
+              <button class="settings-tab w-full text-left px-3 py-2 rounded" 
+              data-tab="notices">Notices</button>
+              </li>
+
               <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="export">Export</button></li>
             </ul>
           </nav>
@@ -1710,6 +1721,14 @@ function openSettingsModal() {
                   <button id="settingsResetMsgBtn" class="px-3 py-2 bg-gray-200 rounded">Reset Defaults</button>
                 </div>
                 <div id="settingsMsgStatus" class="text-sm text-green-600 hidden"></div>
+              </div>
+            </div>
+            
+            <!-- Notices -->
+            <div class="settings-panel hidden" data-panel="notices">
+              <h3 class="font-semibold mb-2">App Notices</h3>
+              <div id="settingsNotices" class="space-y-2 p-2 max-h-80 overflow-auto">
+                <!-- notices will be injected here -->
               </div>
             </div>
 
@@ -1774,6 +1793,31 @@ function openSettingsModal() {
       });
       toast('Templates reset to defaults', 'success');
     });
+
+    // populate notices
+const noticesContainer = modal.querySelector('#settingsNotices');
+if (noticesContainer) {
+  const notices = lsGet(LS_NOTICES) || [];
+  if (!notices.length) {
+    noticesContainer.innerHTML = '<p class="text-sm text-gray-500">No notices available.</p>';
+  } else {
+    noticesContainer.innerHTML = notices.map(n => `
+      <div class="border rounded p-2 bg-gray-50 cl:black dark:bg-gray-700">
+        <div class="flex justify-between items-center mb-1">
+          <h4 class="font-semibold text-sm">${escapeHtml(n.title)}</h4>
+          <span class="text-xs text-gray-400">${new Date(n.created).toLocaleDateString()}</span>
+        </div>
+        <p class="text-sm text-gray-700 dark:text-gray-200">${escapeHtml(n.body)}</p>
+      </div>
+    `).join('');
+  }
+}
+modal.querySelectorAll('.settings-tab').forEach(tb => tb.addEventListener('click', () => {
+  const name = tb.dataset.tab;
+  modal.querySelectorAll('.settings-panel').forEach(p => p.dataset.panel === name ? p.classList.remove('hidden') : p.classList.add('hidden'));
+  modal.querySelectorAll('.settings-tab').forEach(tt => tt.classList.toggle('bg-gray-100', tt === tb));
+}));
+
 
     // exports - PDF
     modal.querySelector('#exportInvoicesPdf')?.addEventListener('click', () => {
