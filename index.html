@@ -125,7 +125,7 @@
 <div id="dashboardSection" class="hidden max-w-6xl mx-auto p-6 bg-white shadow-md mt-10 rounded-lg">
   <div class="flex justify-between items-center mb-6">
     <div class="flex items-center gap-3">
-      <h1 class="text-2xl font-bold"><span id="storeDisplayDesktop"></span></h1>
+      <h1 class="text-2xl font-bold "><span id="storeDisplayDesktop"></span></h1>
       <!-- settings placeholder (JS will show/hide .storeSettingsBtn) -->
        <!-- Optional: hidden settings cog placed next to store name (will be unhidden after login by JS) -->
 <button id="storeSettingsBtn" class="storeSettingsBtn hidden inline-flex items-center gap-2 ml-2 px-2 py-1 rounded bg-emerald-600 text-white" title="Settings" aria-label="Open settings">
@@ -279,13 +279,15 @@
       <!-- Top bar -->
       <header class="bg-white/90 dark:bg-gray-800/90 backdrop-blur border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30">
         <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <div class="flex items-center gap-3">
+          
+          <!-- Left: Title -->
+          <div class="flex items-center gap-3 shrink-0">
             <i class="fa-solid fa-boxes-stacked text-xl text-blue-600"></i>
-            <h1 id="pageTitle" class="text-lg font-semibold">Products</h1>
           </div>
-
+      
           <!-- Right: search + add -->
-          <div class="flex items-center gap-2 w-full max-w-md">
+          <div class="flex items-center gap-2 flex-1 max-w-full">
+            <!-- Search input grows -->
             <div class="relative flex-1">
               <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
               <input
@@ -295,20 +297,23 @@
                 placeholder="Search products..."
               />
             </div>
+      
+            <!-- Add product -->
             <button id="addProductBtn"
-              class="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow transition flex items-center gap-2">
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow transition flex items-center justify-center">
               <i class="fa-solid fa-plus"></i>
             </button>
-
-            <!-- Shop/Cart button -->
+      
+            <!-- Cart -->
             <button id="openCartHeader"
-              class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl shadow transition flex items-center gap-1">
+              class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl shadow transition flex items-center justify-center gap-1">
               <i class="fa-solid fa-cart-shopping"></i>
-              <span id="cartCountHeader" class="ml-1">0</span>
+              <span id="cartCountHeader">0</span>
             </button>
           </div>
         </div>
       </header>
+      
 
       <!-- Shop Modal -->
       <div id="shopModal" class="hidden fixed inset-0 z-50">
