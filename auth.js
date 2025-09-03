@@ -134,8 +134,8 @@
      TRANSLATION (minimal)
      ========================= */
   const I18N = {
-    en: { dashboard: "Dashboard" },
-    so: { dashboard: "Dashboard" }
+    en: { dashboard: "" },
+    so: { dashboard: "" }
   };
   function applyLanguage(lang) {
     if (!lang) lang = lsGet(LS_APP_LANG, 'en') || 'en';
@@ -143,7 +143,7 @@
     const storeEl = document.getElementById('storeDisplayDesktop');
     if (storeEl) {
       const name = storeEl.textContent || getCurrentUser()?.name || '';
-      const base = (I18N[lang] && I18N[lang].dashboard) || 'Dashboard';
+      const base = (I18N[lang] && I18N[lang].dashboard) || '';
       const h = storeEl.closest && storeEl.closest('h1');
       if (h) h.textContent = `${base} - ${name}`;
     }
@@ -724,60 +724,84 @@
   });
 
   function renderProductList(filter = '') {
-    const user = getCurrentUser(); if (!user) return;
+    const user = getCurrentUser();
+    if (!user) return;
+  
     const all = getStoreProducts(user.name);
     const q = (filter || '').toString().toLowerCase().trim();
     const items = q ? all.filter(p => (p.name || '').toString().toLowerCase().includes(q)) : all;
+  
     if (!productRows || !productCards) return;
-    productRows.innerHTML = ''; productCards.innerHTML = '';
+    productRows.innerHTML = '';
+    productCards.innerHTML = '';
+  
     const emptyEl = document.getElementById('emptyState');
-    if (!items.length) { emptyEl && emptyEl.classList.remove('hidden'); return; } else emptyEl && emptyEl.classList.add('hidden');
+    if (!items.length) {
+      emptyEl && emptyEl.classList.remove('hidden');
+      return;
+    } else {
+      emptyEl && emptyEl.classList.add('hidden');
+    }
   
-    // desktop table
-    items.forEach((p, idx) => {
-      const tr = document.createElement('tr');
-      tr.className = 'border-b';
-      tr.innerHTML = `
-        <td class="p-2">${idx + 1}</td>
-        <td class="p-2">${escapeHtml(p.name)}</td>
-        <td class="p-2">${Number(p.cost||0).toFixed(2)}</td>
-        <td class="p-2">${Number(p.price||0).toFixed(2)}</td>
-        <td class="p-2">${p.qty}</td>
-        <td class="p-2 no-print">
-          <div class="flex gap-2">
-            <button class="action-icon" data-action="buy" data-id="${p.id}" title="Add to cart"><i class="fa-solid fa-cart-shopping"></i></button>
-            <button class="action-icon" data-action="edit" data-id="${p.id}" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
-            <button class="action-icon text-red-600" data-action="delete" data-id="${p.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
-          </div>
-        </td>
-      `;
-      productRows.appendChild(tr);
-    });
+    const mobile = window.matchMedia('(max-width:640px)').matches;
   
-    // mobile cards
-    items.forEach((p) => {
-      const card = document.createElement('div');
-      card.className = 'bg-white dark:bg-gray-800 rounded-xl p-3 shadow flex flex-col gap-2';
-      card.innerHTML = `
-        <div class="flex justify-between items-start">
-          <div class="flex flex-col gap-1">
-            <h4 class="font-semibold text-lg">${escapeHtml(p.name)}</h4>
-            <div class="text-sm text-gray-500">Cost: ${Number(p.cost||0).toFixed(2)}</div>
-            <div class="text-sm text-gray-500">Price: ${Number(p.price||0).toFixed(2)}</div>
-            <div class="text-sm text-gray-500">Qty: ${p.qty}</div>
-          </div>
-        </div>
-        <div class="flex justify-between items-center mt-2">
-          <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">${Number(p.price||0).toFixed(2)}</div>
-          <div class="flex gap-2">
-            <button class="action-icon" data-action="buy" data-id="${p.id}" title="Add to cart"><i class="fa-solid fa-cart-shopping"></i></button>
-            <button class="action-icon" data-action="edit" data-id="${p.id}" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
-            <button class="action-icon text-red-600" data-action="delete" data-id="${p.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
-          </div>
-        </div>
-      `;
-      productCards.appendChild(card);
-    });
+    // Desktop Table
+    if (!mobile) {
+      items.forEach((p, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b';
+        tr.innerHTML = `
+          <td class="p-2">${idx + 1}</td>
+          <td class="p-2">${escapeHtml(p.name)}</td>
+          <td class="p-2">${Number(p.cost||0).toFixed(2)}</td>
+          <td class="p-2">${Number(p.price||0).toFixed(2)}</td>
+          <td class="p-2">${p.qty}</td>
+          <td class="p-2 no-print">
+            <div class="flex gap-2">
+              <button class="action-icon" data-action="buy" data-id="${p.id}" title="Add to cart"><i class="fa-solid fa-cart-shopping"></i></button>
+              <button class="action-icon" data-action="edit" data-id="${p.id}" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+              <button class="action-icon text-red-600" data-action="delete" data-id="${p.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </td>
+        `;
+        productRows.appendChild(tr);
+      });
+    }
+  
+  // Mobile Cards
+items.forEach((p, idx) => {
+  const card = document.createElement('div');
+  card.className = 'bg-white dark:bg-gray-800 rounded-xl p-3 shadow flex flex-col gap-2';
+  card.innerHTML = `
+    <!-- Product Name + Price -->
+    <div class="flex justify-between items-center">
+      <h4 class="font-semibold">${escapeHtml(p.name)}</h4>
+      <div class="text-emerald-600 font-semibold">price ${Number(p.price||0).toFixed(2)}</div>
+    </div>
+
+    <!-- Cost + Quantity -->
+    <div class="flex justify-between text-sm text-blue-600 mt-1">
+      <div><strong>Cost:</strong> ${Number(p.cost||0).toFixed(2)}</div>
+      <div><strong>Qty:</strong> ${p.qty}</div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-2 mt-2">
+      <button class="action-icon bg-blue-500 text-white px-2 py-1 rounded" data-action="buy" data-id="${p.id}" title="Add to cart">
+        <i class="fa-solid fa-cart-shopping"></i>
+      </button>
+      <button class="action-icon bg-yellow-400 text-white px-2 py-1 rounded" data-action="edit" data-id="${p.id}" title="Edit">
+        <i class="fa-solid fa-pen-to-square"></i>
+      </button>
+      <button class="action-icon bg-red-600 text-white px-2 py-1 rounded" data-action="delete" data-id="${p.id}" title="Delete">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
+  `;
+  productCards.appendChild(card);
+});
+
+
   }
   
 
@@ -1819,22 +1843,49 @@ modal.querySelectorAll('.settings-tab').forEach(tb => tb.addEventListener('click
 }));
 
 
-    // exports - PDF
-    modal.querySelector('#exportInvoicesPdf')?.addEventListener('click', () => {
-      const user = getCurrentUser(); if (!user) { toast('Login required','error'); return; }
-      const inv = getStoreInvoices(user.name) || [];
-      if (!inv.length) { toast('No invoices','error'); return; }
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      doc.text(`${user.name} - Invoices Report`, 14, 16);
-      doc.autoTable({
-        head: [['ID','Date','Customer','Phone','Amount','Paid','Status']],
-        body: inv.map(i => [i.id, i.date, i.customer, i.phone, i.amount, i.paid, i.status]),
-        startY: 22,
-      });
-      doc.save(`invoices_${user.name}_${Date.now()}.pdf`);
-      toast('Invoices PDF exported','success');
-    });
+// exports - PDF 
+modal.querySelector('#exportInvoicesPdf')?.addEventListener('click', () => {
+  const user = getCurrentUser(); 
+  if (!user) { 
+    toast('Login required','error'); 
+    return; 
+  }
+
+  const inv = getStoreInvoices(user.name) || [];
+  if (!inv.length) { 
+    toast('No invoices','error'); 
+    return; 
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  doc.text(`${user.name} - Invoices Report`, 14, 16);
+
+  doc.autoTable({
+    head: [['ID', 'Date', 'Customer', 'Phone', 'Amount', 'Paid', 'Balance', 'Status']],
+    body: inv.map(i => {
+      const amount = Number(i.amount) || 0;
+      const paid = Number(i.paid) || 0;
+      const balance = amount - paid;
+      return [
+        i.id,
+        i.date,
+        i.customer,
+        i.phone,
+        amount.toFixed(2),
+        paid.toFixed(2),
+        balance.toFixed(2),
+        i.status
+      ];
+    }),
+    startY: 22,
+  });
+
+  doc.save(`invoices_${user.name}_${Date.now()}.pdf`);
+  toast('Invoices PDF exported','success');
+});
+
 
     // exports - Excel
     modal.querySelector('#exportInvoicesExcel')?.addEventListener('click', () => {
