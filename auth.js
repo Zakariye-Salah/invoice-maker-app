@@ -767,39 +767,40 @@
         productRows.appendChild(tr);
       });
     }
-  
-  // Mobile Cards
+// Mobile Cards - Icons Only
 items.forEach((p, idx) => {
   const card = document.createElement('div');
-  card.className = 'bg-white dark:bg-gray-800 rounded-xl p-3 shadow flex flex-col gap-2';
+  card.className = 'bg-white dark:bg-gray-800 rounded-2xl p-4 shadow hover:shadow-lg transition flex flex-col gap-3 w-full';
   card.innerHTML = `
     <!-- Product Name + Price -->
     <div class="flex justify-between items-center">
-      <h4 class="font-semibold">${escapeHtml(p.name)}</h4>
-      <div class="text-emerald-600 font-semibold">price ${Number(p.price||0).toFixed(2)}</div>
+      <h4 class="font-semibold text-gray-800 dark:text-gray-100 truncate">${escapeHtml(p.name)}</h4>
+      <div class="text-emerald-600 font-semibold">$${Number(p.price||0).toFixed(2)}</div>
     </div>
 
     <!-- Cost + Quantity -->
-    <div class="flex justify-between text-sm text-blue-600 mt-1">
-      <div><strong>Cost:</strong> ${Number(p.cost||0).toFixed(2)}</div>
-      <div><strong>Qty:</strong> ${p.qty}</div>
+    <div class="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+      <div>Cost: $${Number(p.cost||0).toFixed(2)}</div>
+      <div>Qty: ${p.qty}</div>
     </div>
 
-    <!-- Actions -->
-    <div class="flex gap-2 mt-2">
-      <button class="action-icon bg-blue-500 text-white px-2 py-1 rounded" data-action="buy" data-id="${p.id}" title="Add to cart">
+    <!-- Actions (Icons only) -->
+    <div class="flex justify-start gap-2 mt-2">
+      <button class="action-icon bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition" data-action="buy" data-id="${p.id}" title="Add to cart">
         <i class="fa-solid fa-cart-shopping"></i>
       </button>
-      <button class="action-icon bg-yellow-400 text-white px-2 py-1 rounded" data-action="edit" data-id="${p.id}" title="Edit">
+      <button class="action-icon bg-yellow-400 hover:bg-yellow-500 text-white p-2 rounded-lg transition" data-action="edit" data-id="${p.id}" title="Edit">
         <i class="fa-solid fa-pen-to-square"></i>
       </button>
-      <button class="action-icon bg-red-600 text-white px-2 py-1 rounded" data-action="delete" data-id="${p.id}" title="Delete">
+      <button class="action-icon bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition" data-action="delete" data-id="${p.id}" title="Delete">
         <i class="fa-solid fa-trash"></i>
       </button>
     </div>
   `;
   productCards.appendChild(card);
 });
+
+
 
 
   }
