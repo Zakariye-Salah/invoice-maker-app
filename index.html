@@ -605,21 +605,28 @@
 </footer>
 </div>
 <!-- ================= Bottom Navigation ================= -->
-<nav id="bottomNav" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex justify-around py-2 z-50">
-  <button class="navBtn flex flex-col items-center text-sm" data-target="dashboardContent">
-    <i class="fas fa-home"></i>
+
+  <nav id="bottomNav" 
+  class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 
+         flex justify-around py-2 z-50 text-gray-600 dark:text-gray-300">
+  
+  <button class="navBtn flex flex-col items-center text-sm transition-colors hover:text-emerald-500" data-target="dashboardContent">
+    <i class="fas fa-home text-lg"></i>
     <span>Dashboard</span>
   </button>
-  <button class="navBtn flex flex-col items-center text-sm" data-target="invoicesSection">
-    <i class="fas fa-file-invoice"></i>
+
+  <button class="navBtn flex flex-col items-center text-sm transition-colors hover:text-emerald-500" data-target="invoicesSection">
+    <i class="fas fa-file-invoice text-lg"></i>
     <span>Invoices</span>
   </button>
-  <button class="navBtn flex flex-col items-center text-sm" data-target="productsSection">
-    <i class="fas fa-box"></i>
+
+  <button class="navBtn flex flex-col items-center text-sm transition-colors hover:text-emerald-500" data-target="productsSection">
+    <i class="fas fa-box text-lg"></i>
     <span>Products</span>
   </button>
-  <button class="navBtn flex flex-col items-center text-sm" data-target="reportsSection">
-    <i class="fas fa-chart-bar"></i>
+
+  <button class="navBtn flex flex-col items-center text-sm transition-colors hover:text-emerald-500" data-target="reportsSection">
+    <i class="fas fa-chart-bar text-lg"></i>
     <span>Reports</span>
   </button>
 </nav>
@@ -635,3 +642,4 @@
 <script src="auth.js"></script>
 </body>
 </html>
+
