@@ -644,345 +644,314 @@
   
 
   /* =========================
-   DASHBOARD: global functions (not scoped) 
-   Paste this replacing the IIFE version so loadDashboard is globally available
-   ========================= */
+    /* ---------- Dashboard: totals, filtering and charts ---------- */
 
-var dashboardChart = null;
-var dashboardLiveInterval = null;
-var currentDashboardPeriod = 'lifetime';
+let dashboardChart = null;
+let dashboardLiveInterval = null;
 
-// Robust invoice date parser
+// parse invoice date robustly; invoices may store timestamp or string
 function parseInvoiceDate(d) {
   if (d == null) return null;
   if (typeof d === 'number') return new Date(d);
   if (typeof d === 'string') {
+    // try ISO / timestamp / custom "YYYY-MM-DD hh:mm"
     const n = Number(d);
     if (isFinite(n)) return new Date(n);
+    // replace space between date and time -> T to help Date parse
     const s = d.replace(' ', 'T');
     const dt = new Date(s);
     if (!isNaN(dt.getTime())) return dt;
-    const parsed = Date.parse(d);
-    if (!isNaN(parsed)) return new Date(parsed);
   }
-  try { return new Date(d); } catch (e) { return null; }
+  return new Date(d);
 }
 
-// Return store invoices filtered by period
-function getInvoicesByPeriod(period) {
-  var user = getCurrentUser();
+// returns invoices filtered by period
+function getInvoicesByPeriod(period = 'lifetime') {
+  const user = getCurrentUser();
   if (!user) return [];
-  var all = getStoreInvoices(user.name) || [];
+  const all = getStoreInvoices(user.name) || [];
   if (!all.length) return [];
 
-  if (!period || period === 'lifetime') return all.slice();
+  if (period === 'lifetime') return all;
 
-  var now = new Date(), start = null;
-  if (period === 'live' || period === 'today') {
-    start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0,0);
+  const now = new Date();
+  // start times
+  let start = null;
+  if (period === 'today' || period === 'live') {
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate()); // midnight today
   } else if (period === 'weekly') {
-    start = new Date(now); start.setDate(now.getDate() - 6); start.setHours(0,0,0,0);
+    // last 7 days (including today)
+    start = new Date(now);
+    start.setDate(now.getDate() - 6); // 7-day window
+    start.setHours(0,0,0,0);
   } else if (period === 'monthly') {
-    start = new Date(now.getFullYear(), now.getMonth(), 1,0,0,0,0);
+    start = new Date(now.getFullYear(), now.getMonth(), 1);
   } else if (period === 'yearly') {
-    start = new Date(now.getFullYear(), 0, 1,0,0,0,0);
+    start = new Date(now.getFullYear(), 0, 1);
   } else {
-    return all.slice();
+    // unknown -> lifetime
+    return all;
   }
-  var end = now;
-  return all.filter(function(inv) {
-    var dt = parseInvoiceDate(inv.date);
+
+  return all.filter(inv => {
+    const dt = parseInvoiceDate(inv.date);
     if (!dt) return false;
-    var t = dt.getTime();
-    return t >= start.getTime() && t <= end.getTime();
+    return dt.getTime() >= start.getTime() && dt.getTime() <= now.getTime();
   });
 }
 
-// Build series
-function buildSalesSeries(invoices, period) {
-  invoices = Array.isArray(invoices) ? invoices : [];
-  var now = new Date();
+// bucket invoices into chart series depending on period
+function buildSalesSeries(invoices, period = 'lifetime') {
+  // returns { labels: [], data: [] }
+  if (!Array.isArray(invoices)) invoices = [];
 
-  if (!period || period === 'lifetime') {
-    var map = new Map();
-    invoices.forEach(function(inv) {
-      var dt = parseInvoiceDate(inv.date); if (!dt) return;
-      var key = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
-      var amt = Number(inv.paid) || 0;
-      map.set(key, (map.get(key) || 0) + amt);
+  const now = new Date();
+
+  if (period === 'lifetime') {
+    // simple: monthly totals by year-month (last 12 months)
+    const map = new Map();
+    invoices.forEach(inv => {
+      const dt = parseInvoiceDate(inv.date);
+      if (!dt) return;
+      const key = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      const amt = Number(inv.paid) || 0;
+      map.set(key, (map.get(key)||0) + amt);
     });
-    var keys = Array.from(map.keys()).sort();
-    if (keys.length === 0) {
-      var labels = [], data = [];
-      for (var i = 5; i >= 0; i--) {
-        var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        var k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0');
-        labels.push(k); data.push(0);
-      }
-      return { labels: labels, data: data };
-    }
-    return { labels: keys, data: keys.map(function(k) { return map.get(k) || 0; }) };
+    // order keys ascending
+    const keys = Array.from(map.keys()).sort();
+    const labels = keys;
+    const data = keys.map(k => map.get(k) || 0);
+    return { labels, data };
   }
 
   if (period === 'today' || period === 'live') {
-    var labels24 = Array.from({length:24}, function(_,i){ return i + ':00'; });
-    var arr = Array(24).fill(0);
-    invoices.forEach(function(inv) {
-      var dt = parseInvoiceDate(inv.date); if (!dt) return;
-      arr[dt.getHours()] += Number(inv.paid) || 0;
+    // hourly buckets 0..23 for today
+    const labels = Array.from({length:24}, (_,i) => `${i}:00`);
+    const arr = Array(24).fill(0);
+    invoices.forEach(inv => {
+      const dt = parseInvoiceDate(inv.date);
+      if (!dt) return;
+      const h = dt.getHours();
+      arr[h] += Number(inv.paid) || 0;
     });
-    return { labels: labels24, data: arr };
+    return { labels, data: arr };
   }
 
   if (period === 'weekly') {
-    var days = [], totals = [];
-    for (var j = 6; j >= 0; j--) {
-      var d2 = new Date(now); d2.setDate(now.getDate() - j); d2.setHours(0,0,0,0);
-      days.push(d2); totals.push(0);
+    // last 7 days labels
+    const days = [];
+    const totals = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now); d.setDate(now.getDate() - i); d.setHours(0,0,0,0);
+      days.push(d);
+      totals.push(0);
     }
-    invoices.forEach(function(inv) {
-      var dt = parseInvoiceDate(inv.date); if (!dt) return;
-      for (var idx = 0; idx < days.length; idx++) {
-        var d0 = days[idx];
-        if (dt.getFullYear() === d0.getFullYear() && dt.getMonth() === d0.getMonth() && dt.getDate() === d0.getDate()) {
-          totals[idx] += Number(inv.paid) || 0; break;
+    invoices.forEach(inv => {
+      const dt = parseInvoiceDate(inv.date);
+      if (!dt) return;
+      // find matching day index
+      for (let idx=0; idx<days.length; idx++) {
+        const d = days[idx];
+        if (dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth() && dt.getDate() === d.getDate()) {
+          totals[idx] += Number(inv.paid) || 0;
+          break;
         }
       }
     });
-    return { labels: days.map(function(d){ return d.getDate() + '/' + (d.getMonth()+1); }), data: totals };
+    const labels = days.map(d => `${d.getDate()}/${d.getMonth()+1}`);
+    return { labels, data: totals };
   }
 
   if (period === 'monthly') {
-    var yr = now.getFullYear(), mo = now.getMonth();
-    var daysCount = new Date(yr, mo+1, 0).getDate();
-    var labels = Array.from({length: daysCount}, function(_,i){ return String(i+1); });
-    var totalsM = Array(daysCount).fill(0);
-    invoices.forEach(function(inv) {
-      var dt = parseInvoiceDate(inv.date); if (!dt) return;
-      if (dt.getFullYear() === yr && dt.getMonth() === mo) {
-        totalsM[dt.getDate()-1] += Number(inv.paid) || 0;
+    // days in current month
+    const year = now.getFullYear(), month = now.getMonth();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const labels = Array.from({length: daysInMonth}, (_, i) => String(i+1));
+    const totals = Array(daysInMonth).fill(0);
+    invoices.forEach(inv => {
+      const dt = parseInvoiceDate(inv.date);
+      if (!dt) return;
+      if (dt.getFullYear() === year && dt.getMonth() === month) {
+        totals[dt.getDate()-1] += Number(inv.paid) || 0;
       }
     });
-    return { labels: labels, data: totalsM };
+    return { labels, data: totals };
   }
 
   if (period === 'yearly') {
-    var labelsY = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    var totalsY = Array(12).fill(0);
-    var yrNow = now.getFullYear();
-    invoices.forEach(function(inv) {
-      var dt = parseInvoiceDate(inv.date); if (!dt) return;
-      if (dt.getFullYear() === yrNow) totalsY[dt.getMonth()] += Number(inv.paid) || 0;
+    // month buckets Jan..Dec
+    const labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const totals = Array(12).fill(0);
+    const year = now.getFullYear();
+    invoices.forEach(inv => {
+      const dt = parseInvoiceDate(inv.date);
+      if (!dt) return;
+      if (dt.getFullYear() === year) {
+        totals[dt.getMonth()] += Number(inv.paid) || 0;
+      }
     });
-    return { labels: labelsY, data: totalsY };
+    return { labels, data: totals };
   }
 
+  // fallback
   return { labels: [], data: [] };
 }
 
-// Render Chart.js bar chart safely
-// Replace existing renderSalesChart with this robust version
-function renderSalesChart(series, period) {
-  // get canvas and context
-  var canvas = document.getElementById('salesChart');
-  if (!canvas) return;
-  var ctx = canvas.getContext && canvas.getContext('2d');
-  if (!ctx) return;
-
-  // destroy previous chart safely
-  if (window.dashboardChart) {
-    try { window.dashboardChart.destroy(); } catch(e) { /* ignore */ }
-    window.dashboardChart = null;
+function renderSalesChart(series, period = 'lifetime') {
+  const ctx = document.getElementById('salesChart').getContext('2d');
+  if (dashboardChart) {
+    try { dashboardChart.destroy(); } catch(e){}
+    dashboardChart = null;
   }
 
-  // Ensure labels/data arrays
-  var labels = Array.isArray(series && series.labels) ? series.labels.slice() : [];
-  var rawData = Array.isArray(series && series.data) ? series.data.slice() : [];
+  // compute max from data
+  const maxData = Array.isArray(series.data) && series.data.length ? Math.max(...series.data.map(v => Number(v) || 0)) : 0;
 
-  // If labels empty but data present, create numeric labels
-  if (!labels.length && rawData.length) {
-    labels = rawData.map(function(_, i) { return String(i+1); });
-  }
+  // candidate step sizes (covers your requested behavior)
+  const candidateSteps = [1,5,10,50,100,500,1000,5000,10000,50000,100000,500000,1000000];
 
-  // Normalize/sanitize data -> finite numbers only
-  var data = rawData.map(function(v) {
-    var n = Number(v);
-    if (!isFinite(n)) return 0;
-    return n;
-  });
-
-  // If still empty, produce a single zero datum to avoid Chart issues
-  if (!data.length) { labels = ['No data']; data = [0]; }
-
-  // Determine maximum value and choose a nice step / max for y-axis
-  var maxData = Math.max.apply(null, data.map(function(n){ return isFinite(n) ? n : 0; }));
-  if (!isFinite(maxData) || maxData <= 0) { maxData = 0; }
-
+  // choose smallest step such that number of steps <= 10 (keeps bars readable)
   function chooseStepAndMax(val) {
     if (!isFinite(val) || val <= 0) return { step: 1, max: 10 };
-    var candidateSteps = [1,5,10,25,50,100,250,500,1000,5000,10000,50000,100000];
-    for (var i=0;i<candidateSteps.length;i++) {
-      var step = candidateSteps[i];
-      var stepsNeeded = Math.ceil(val / step);
+    for (let i = 0; i < candidateSteps.length; i++) {
+      const step = candidateSteps[i];
+      const stepsNeeded = Math.ceil(val / step);
       if (stepsNeeded <= 10) {
-        var niceMax = step * Math.ceil(val / step);
-        return { step: step, max: niceMax };
+        const niceMax = step * Math.ceil(val / step); // round up to multiple of step
+        return { step, max: niceMax };
       }
     }
-    // fallback: power of 10 scaling
-    var pow = Math.pow(10, Math.floor(Math.log10(val)));
-    var step = pow;
+    // fallback for very large numbers: use power-of-10 step scaled so steps <= 10
+    const pow = Math.pow(10, Math.floor(Math.log10(val)));
+    let step = pow;
     while (Math.ceil(val / step) > 10) step *= 10;
-    return { step: step, max: step * Math.ceil(val / step) };
+    const niceMax = step * Math.ceil(val / step);
+    return { step, max: niceMax };
   }
 
-  var chosen = chooseStepAndMax(maxData);
-  var stepSize = chosen.step;
-  var niceMax = chosen.max;
+  const { step: stepSize, max: niceMax } = chooseStepAndMax(maxData);
 
-  // If max ended up 0 (no positive data), set reasonable defaults
-  if (!isFinite(niceMax) || niceMax <= 0) { stepSize = 1; niceMax = 10; }
-
-  // create chart
-  try {
-    window.dashboardChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Paid Sales',
-          data: data,
-          backgroundColor: 'rgba(16,185,129,0.85)',
-          borderColor: 'rgba(4,120,87,0.9)',
-          borderWidth: 0.6,
-          barPercentage: 0.75,
-          categoryPercentage: 0.8
-        }]
+  dashboardChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: series.labels,
+      datasets: [{
+        label: 'Paid Sales',
+        data: series.data.map(v => Number(v) || 0),
+        fill: false,
+        borderWidth: 1,
+        barPercentage: 0.75,
+        categoryPercentage: 0.85
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: niceMax,
+          ticks: {
+            stepSize: stepSize,
+            callback: function(v) { return fmtMoney(v); }
+          }
+        }
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: {
-          duration: 450,
-          easing: 'easeOutQuart',
-          // ensure animation doesn't loop
-          loop: false
-        },
-        scales: {
-          x: {
-            ticks: { autoSkip: true, maxRotation: 0, minRotation: 0 }
-          },
-          y: {
-            beginAtZero: true,
-            max: niceMax,
-            ticks: {
-              stepSize: stepSize,
-              callback: function(value /*, index, values*/) {
-                return fmtMoney(value);
-              }
-            }
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: function(ctx) { return fmtMoney(ctx.parsed.y ?? ctx.parsed); }
           }
         },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                // prefer ctx.raw; fallback to dataset value
-                var raw = context.raw;
-                var val = (typeof raw === 'number') ? raw : (Number(context.dataset.data[context.dataIndex]) || 0);
-                return fmtMoney(val);
-              }
-            }
-          },
-          legend: { display: false }
-        }
+        legend: { display: false }
       }
-    });
-  } catch (err) {
-    console.error('Failed to render sales chart', err);
-  }
+    }
+  });
 }
 
-// Update totals + chart
-function updateDashboardTotals(period) {
-  if (!period) period = currentDashboardPeriod || (document.getElementById('dashboardPeriod') && document.getElementById('dashboardPeriod').value) || 'lifetime';
-  currentDashboardPeriod = period;
-  var user = getCurrentUser();
+
+
+/* updateDashboardTotals now accepts a period filter */
+function updateDashboardTotals(period = document.getElementById('dashboardPeriod')?.value || 'lifetime') {
+  const user = getCurrentUser();
   if (!user) return;
 
-  var invoices = getInvoicesByPeriod(period);
-  var products = getStoreProducts(user.name) || [];
+  // invoices filtered by period
+  const invoices = getInvoicesByPeriod(period);
 
-  var totalInvoicesCount = invoices.length;
-  var totalSalesPaid = invoices.reduce(function(s, inv){ return s + (Number(inv.paid) || 0); }, 0);
-  var totalRevenue = invoices.reduce(function(s, inv){ return s + (Number(inv.amount) || Number(inv.total) || 0); }, 0);
+  // products (no createdAt available in many setups) - show total products (global)
+  const products = getStoreProducts(user.name);
+  const totalProductsCount = Array.isArray(products) ? products.length : 0;
 
-  try { document.getElementById('totalInvoices') && (document.getElementById('totalInvoices').textContent = totalInvoicesCount); } catch(e){}
-  try { document.getElementById('totalProducts') && (document.getElementById('totalProducts').textContent = (Array.isArray(products) ? products.length : 0)); } catch(e){}
-  try { document.getElementById('totalSales') && (document.getElementById('totalSales').textContent = fmtMoney(totalSalesPaid)); } catch(e){}
-  try { document.getElementById('totalRevenue') && (document.getElementById('totalRevenue').textContent = fmtMoney(totalRevenue)); } catch(e){}
+  // totals
+  const totalInvoicesCount = invoices.length;
+  const totalSalesPaid = invoices.reduce((s, inv) => s + (Number(inv.paid) || 0), 0);      // paid amounts
+  const totalRevenue = invoices.reduce((s, inv) => s + (Number(inv.amount) || Number(inv.total) || 0), 0); // invoice totals
 
-  var series = buildSalesSeries(invoices, period);
+  // update DOM
+  document.getElementById('totalInvoices') && (document.getElementById('totalInvoices').textContent = totalInvoicesCount);
+  document.getElementById('totalProducts') && (document.getElementById('totalProducts').textContent = totalProductsCount);
+  document.getElementById('totalSales') && (document.getElementById('totalSales').textContent = fmtMoney(totalSalesPaid));
+  document.getElementById('totalRevenue') && (document.getElementById('totalRevenue').textContent = fmtMoney(totalRevenue));
+
+  // chart
+  const series = buildSalesSeries(invoices, period);
   renderSalesChart(series, period);
 }
 
-// Load dashboard view and wire controls
+/* loadDashboard updated to wire period control & live behavior */
 function loadDashboard() {
-  var user = getCurrentUser();
+  const user = getCurrentUser();
   if (!user) return;
-  if (authSection) authSection.classList.add('hidden');
-  if (dashboardSection) dashboardSection.classList.remove('hidden');
-  if (storeDisplayDesktop) storeDisplayDesktop.textContent = user.name || '';
+  authSection && authSection.classList.add('hidden');
+  dashboardSection && dashboardSection.classList.remove('hidden');
+  if (storeDisplayDesktop) {
+    storeDisplayDesktop.textContent = user.name;
+    // applyLanguage(lsGet(LS_APP_LANG, 'en')); // keep existing if used
+  }
 
-  var periodSel = document.getElementById('dashboardPeriod');
-  var refreshBtn = document.getElementById('dashboardRefresh');
+  // initial render
+  const periodSel = document.getElementById('dashboardPeriod');
+  const refreshBtn = document.getElementById('dashboardRefresh');
 
   function applyPeriodChange() {
-    var p = periodSel ? periodSel.value : (currentDashboardPeriod || 'lifetime');
-    try { if (dashboardLiveInterval) { clearInterval(dashboardLiveInterval); dashboardLiveInterval = null; } } catch(e){}
+    const p = periodSel?.value || 'lifetime';
+    // clear any existing live interval
+    if (dashboardLiveInterval) { clearInterval(dashboardLiveInterval); dashboardLiveInterval = null; }
     updateDashboardTotals(p);
+    // if live, auto-refresh every 5 seconds
     if (p === 'live') {
-      dashboardLiveInterval = setInterval(function(){ updateDashboardTotals('today'); }, 5000);
+      dashboardLiveInterval = setInterval(() => updateDashboardTotals('today'), 5000);
     }
   }
 
-  if (periodSel && !periodSel._dashboardBound) {
-    periodSel.addEventListener('change', applyPeriodChange);
-    periodSel._dashboardBound = true;
-  }
-  if (refreshBtn && !refreshBtn._dashboardBound) {
-    refreshBtn.addEventListener('click', applyPeriodChange);
-    refreshBtn._dashboardBound = true;
-  }
+  // wire events
+  periodSel?.addEventListener('change', applyPeriodChange);
+  refreshBtn?.addEventListener('click', () => applyPeriodChange());
 
-  try { window.removeEventListener('dataUpdated', updateDashboardTotals); } catch(e){}
-  window.addEventListener('dataUpdated', function(){ updateDashboardTotals(periodSel ? periodSel.value : currentDashboardPeriod); });
+  // when data updates elsewhere, refresh current period
+  window.removeEventListener('dataUpdated', updateDashboardTotals); // avoid duplicate
+  window.addEventListener('dataUpdated', () => updateDashboardTotals(periodSel?.value || 'lifetime'));
 
-  var initialPeriod = (periodSel && periodSel.value) || currentDashboardPeriod || 'lifetime';
-  currentDashboardPeriod = initialPeriod;
-  updateDashboardTotals(initialPeriod);
+  // initial apply
+  applyPeriodChange();
+
+  showSection && showSection('dashboardContent');
+  setAuthVisibility && setAuthVisibility(false);
+
+  // ensure settings cog exists and is visible
+  try { window.AppSettings.createStoreSettingsBtn(); } catch (e) {}
 }
 
-// Expose in window namespace for compatibility
-window.loadDashboard = loadDashboard;
-window.updateDashboardTotals = updateDashboardTotals;
-window.buildSalesSeries = buildSalesSeries;
-window.parseInvoiceDate = parseInvoiceDate;
-
-// ensure Chart.js is available (attempt to load if missing)
-document.addEventListener('DOMContentLoaded', function(){
-  if (typeof Chart === 'undefined') {
-    if (typeof ensureLib === 'function') {
-      ensureLib('https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js', 'Chart').catch(function(){ console.warn('Chart.js not loaded - sales chart will be unavailable until Chart.js is included.'); });
-    } else {
-      console.warn('Chart.js not present and ensureLib not available.');
-    }
+// update when page script loads
+window.addEventListener('DOMContentLoaded', () => {
+  // create chart placeholder if Chart not loaded yet; chart creation will check Chart availability
+  const canvas = document.getElementById('salesChart');
+  if (canvas && typeof Chart === 'undefined') {
+    // optionally load Chart.js if not available (do not auto-insert external scripts here to keep things offline)
+    console.warn('Chart.js not found — include Chart.js library for charts to render.');
   }
 });
-
-
-
-
 
   /* =========================
      NAV / showSection
