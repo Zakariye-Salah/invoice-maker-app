@@ -83,7 +83,6 @@
           if (!exists) existing.push(u);
         });
         saveUsers(existing);
-        toast('Migrated legacy users', 'success', 1800);
       }
     } catch (e) { console.warn('Migration failed', e); }
   }
