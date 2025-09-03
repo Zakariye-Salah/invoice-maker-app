@@ -1660,267 +1660,761 @@ items.forEach((p, idx) => {
   }
   document.addEventListener('DOMContentLoaded', initAfterLoad);
 
-  (function setupSettingsModule(){
+/* SETTINGS + DRIVE BACKUP with: auto-restore prompt on login, spinner, auto-backup scheduling */
+(function setupSettingsModuleWithDrive() {
 
-    // Tiny toast fallback
-    if (typeof window.toast !== 'function') {
-      window.toast = function (msg = '', type = 'info') {
-        try {
-          const id = 'app-toast';
-          const existing = document.getElementById(id);
-          if (existing) existing.remove();
-          const el = document.createElement('div');
-          el.id = id;
-          el.textContent = msg;
-          el.className = 'fixed right-4 bottom-6 z-50 p-3 rounded shadow-lg';
-          el.style.background = type === 'error' ? '#fee2e2' : (type === 'success' ? '#dcfce7' : '#eef2ff');
-          el.style.color = '#0f172a';
-          document.body.appendChild(el);
-          setTimeout(()=> el.classList.add('opacity-0'), 2000);
-          setTimeout(()=> el.remove(), 2400);
-        } catch(e){ console.log(msg); }
-      };
-    }
-  
-    // create/reuse settings button
-    function ensureSettingsBtn() {
-      let btn = document.getElementById('storeSettingsBtn');
-      if (!btn) {
-        const target = document.getElementById('storeDisplayDesktop');
-        btn = document.createElement('button');
-        btn.id = 'storeSettingsBtn';
-        btn.className = 'hidden ml-2 px-2 py-1 rounded bg-emerald-600 text-white';
-        btn.innerHTML = '<i class="fa-solid fa-cog"></i>';
-        if (target) target.insertAdjacentElement('afterend', btn);
-        else document.body.appendChild(btn);
+  // ============================
+  // Config / keys / defaults
+  // ============================
+  const DRIVE_CLIENT_ID = '246612771655-cehl69jg1g3hj5u0mjouuum3pvu0cc1t.apps.googleusercontent.com';
+  const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
+  const LS_MSG_TPL = 'msg_templates_v1';
+  const LS_NOTICES = 'notices_v1';
+  const LS_SETTINGS = 'app_settings_v1'; // store opts: { autoRestoreOnLogin: true/false, autoBackup: { enabled, days }, lastAutoBackup: ts }
+  const BACKUP_NAME_PREFIX = 'supermarket_backup_';
+
+  // ============================
+  // small helpers
+  // ============================
+  function lsGet(k) { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return localStorage.getItem(k); } }
+  function lsSet(k,v) { if (typeof v === 'object') localStorage.setItem(k, JSON.stringify(v)); else localStorage.setItem(k, String(v)); }
+  function escapeHtml(s) { if (s == null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,"&#039;"); }
+  function now() { return Date.now(); }
+
+  // minimal toast provided if not present
+  if (typeof window.toast !== 'function') {
+    window.toast = function (msg = '', type = 'info') {
+      try {
+        const id = 'app-toast';
+        const existing = document.getElementById(id);
+        if (existing) existing.remove();
+        const el = document.createElement('div');
+        el.id = id;
+        el.textContent = msg;
+        el.className = 'fixed right-4 bottom-6 z-50 p-3 rounded shadow-lg transition-opacity';
+        el.style.background = type === 'error' ? '#fee2e2' : (type === 'success' ? '#dcfce7' : '#eef2ff');
+        el.style.color = '#0f172a';
+        document.body.appendChild(el);
+        setTimeout(()=> el.style.opacity = '0', 2400);
+        setTimeout(()=> el.remove(), 2800);
+      } catch(e){ console.log(msg); }
+    };
+  }
+
+  // create simple spinner overlay (hidden by default)
+  function ensureSpinner() {
+    let sp = document.getElementById('driveSpinnerOverlay');
+    if (sp) return sp;
+    sp = document.createElement('div');
+    sp.id = 'driveSpinnerOverlay';
+    sp.className = 'hidden fixed inset-0 z-90 flex items-center justify-center';
+    sp.innerHTML = `
+      <div style="position: absolute; inset:0; background: rgba(0,0,0,0.45)"></div>
+      <div style="z-index: 9999; background: white; padding: 18px; border-radius: 12px; display:flex; gap:12px; align-items:center; box-shadow: 0 12px 40px rgba(2,6,23,0.2)">
+        <div class="lds-ring" style="width:36px;height:36px;display:inline-block"><div style="box-sizing:border-box;display:block;position:absolute;width:36px;height:36px;border:4px solid #0ea5e9;border-radius:50%;animation:lds-ring 1.2s linear infinite;border-color:#0ea5e9 transparent transparent transparent"></div></div>
+        <div style="min-width:220px"><strong id="driveSpinnerMsg">Working...</strong><div id="driveSpinnerSub" style="font-size:12px;color:#374151;margin-top:6px"></div></div>
+      </div>
+      <style>
+      @keyframes lds-ring { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      </style>
+    `;
+    document.body.appendChild(sp);
+    return sp;
+  }
+  function showSpinner(msg = 'Working...', sub = '') {
+    const sp = ensureSpinner();
+    sp.classList.remove('hidden');
+    document.getElementById('driveSpinnerMsg').textContent = msg;
+    document.getElementById('driveSpinnerSub').textContent = sub;
+  }
+  function hideSpinner() {
+    const sp = document.getElementById('driveSpinnerOverlay');
+    if (sp) sp.classList.add('hidden');
+  }
+
+  // seed notices and templates if missing
+  (function seedDefaults(){
+    try {
+      const n = lsGet(LS_NOTICES);
+      if (!Array.isArray(n) || !n.length) {
+        lsSet(LS_NOTICES, [
+          { id:`N-${Date.now()}`, title:'Welcome', body:'Welcome — your data is stored locally. Use Drive backup to save to Google Drive.', created: Date.now() },
+          { id:`N-${Date.now()+1}`, title:'Share', body:'Use Share to export card images for social.', created: Date.now()+1 }
+        ]);
       }
-      btn.onclick = openSettingsModal;
-      return btn;
+    } catch(e){}
+    try {
+      const t = lsGet(LS_MSG_TPL);
+      if (!t || typeof t !== 'object') {
+        lsSet(LS_MSG_TPL, {
+          reminder_wa: 'Hello {customer}, your invoice {id} has balance {balance}. - {store}',
+          reminder_sms: 'Hello {customer}, invoice {id} balance {balance}.'
+        });
+      }
+    } catch(e){}
+    try {
+      const s = lsGet(LS_SETTINGS);
+      if (!s || typeof s !== 'object') {
+        lsSet(LS_SETTINGS, { autoRestoreOnLogin: false, autoBackup: { enabled: false, days: 7 }, lastAutoBackup: 0 });
+      }
+    } catch(e){}
+  })();
+
+  // ============================
+  // Google Drive helpers
+  // ============================
+  let driveTokenClient = null;
+  let gapiClientLoaded = false;
+
+  function initGisIfNeeded() {
+    if (driveTokenClient) return;
+    if (!window.google || !google.accounts || !google.accounts.oauth2) {
+      console.warn('Google Identity Services not available. Include <script src="https://accounts.google.com/gsi/client">');
+      return;
     }
-  
-    // open modal
-   
-    // openSettingsModal: creates modal if missing, wires up behaviors 
-function openSettingsModal() {
-  let modal = document.getElementById('appSettingsModal');
+    driveTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: DRIVE_CLIENT_ID,
+      scope: DRIVE_SCOPES,
+      callback: (resp) => { /* set per-call */ }
+    });
+    window._driveTokenClient = driveTokenClient;
+  }
 
-  if (!modal) {
-    const html = `
-    <div id="appSettingsModal" class="hidden fixed inset-0 z-70 flex items-start justify-center p-4">
-      <div id="appSettingsModalBackdrop" class="absolute inset-0 bg-black/50"></div>
-      <div class="relative w-full max-w-4xl bg-white rounded-lg shadow-lg overflow-auto max-h-[90vh]">
-        <div class="flex items-center justify-between p-4 border-b">
-          <h2 id="settingsTitle" class="text-lg font-semibold">Settings & Utilities</h2>
-          <button id="settingsCloseBtn" class="px-3 py-1 rounded bg-gray-200">Close</button>
-        </div>
-        <div class="flex gap-4 p-4">
-          <nav id="settingsNav" class="w-56">
-            <ul class="space-y-2">
-              <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="messages">Messages</button></li>
-              <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="help">Help</button></li>
-              <li>
-              <button class="settings-tab w-full text-left px-3 py-2 rounded" 
-              data-tab="notices">Notices</button>
-              </li>
+  function initGapiIfNeeded() {
+    if (gapiClientLoaded) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      if (!window.gapi) {
+        reject(new Error('gapi not loaded - include https://apis.google.com/js/api.js'));
+        return;
+      }
+      try {
+        gapi.load('client', async () => {
+          try {
+            await gapi.client.init({ discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"] });
+            gapiClientLoaded = true;
+            resolve();
+          } catch (err) { reject(err); }
+        });
+      } catch (err) { reject(err); }
+    });
+  }
 
-              <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="export">Export</button></li>
-            </ul>
-          </nav>
-          <div class="flex-1" id="settingsContent">
+  function requestDriveToken(cb) {
+    initGisIfNeeded();
+    if (!driveTokenClient) {
+      setDriveStatus('Google Identity not initialized (include GSI script)', true);
+      return;
+    }
+    driveTokenClient.callback = (resp) => {
+      if (resp.error) {
+        setDriveStatus('Drive auth error: ' + resp.error, true);
+        console.error(resp);
+        return;
+      }
+      cb(resp.access_token);
+    };
+    try {
+      driveTokenClient.requestAccessToken({ prompt: '' });
+    } catch(e) { console.error(e); setDriveStatus('Drive token request failed', true); }
+  }
 
-            <!-- Messages -->
-            <div class="settings-panel hidden" data-panel="messages">
-              <h3 class="font-semibold mb-2">WhatsApp / SMS Templates</h3>
-              <p class="text-sm mb-2">Use placeholders: <code>{customer}</code>, <code>{id}</code>, <code>{balance}</code>, <code>{store}</code>, <code>{phone}</code></p>
-              <div class="space-y-2 p-2">
-                <div>
-                  <label class="block text-sm">WhatsApp Template</label>
-                  <textarea id="settingsWaTpl" rows="3" class="w-full border rounded p-2"></textarea>
+  function setDriveStatus(msg, isError=false) {
+    const el = document.getElementById('driveStatus');
+    if (el) { el.textContent = msg; el.style.color = isError ? '#b91c1c' : '#064e3b'; }
+  }
+
+  // ============================
+  // Modal: create & wire UI
+  // ============================
+  function openSettingsModal() {
+    let modal = document.getElementById('appSettingsModal');
+    if (!modal) {
+      const html = `...`; // placeholder to be replaced below with full markup
+      // We'll build the modal element programmatically to avoid escaping pain
+      modal = document.createElement('div');
+      modal.id = 'appSettingsModal';
+      modal.className = 'hidden fixed inset-0 z-70 flex items-start justify-center p-4';
+      modal.innerHTML = `
+        <div id="appSettingsModalBackdrop" class="absolute inset-0 bg-black/50"></div>
+        <div class="relative w-full max-w-4xl bg-white rounded-lg shadow-lg overflow-auto max-h-[90vh]">
+          <div class="flex items-center justify-between p-4 border-b">
+            <h2 id="settingsTitle" class="text-lg font-semibold">Settings & Utilities</h2>
+            <button id="settingsCloseBtn" class="px-3 py-1 rounded bg-gray-200">Close</button>
+          </div>
+          <div class="flex gap-4 p-4">
+            <nav id="settingsNav" class="w-56">
+              <ul class="space-y-2">
+                <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="messages">Messages</button></li>
+                <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="help">Help</button></li>
+                <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="notices">Notices</button></li>
+                <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="export">Export</button></li>
+                <li><button class="settings-tab w-full text-left px-3 py-2 rounded" data-tab="drive">Drive Backup</button></li>
+              </ul>
+            </nav>
+            <div class="flex-1" id="settingsContent">
+
+              <!-- Messages -->
+              <div class="settings-panel hidden" data-panel="messages">
+                <h3 class="font-semibold mb-2">WhatsApp / SMS Templates</h3>
+                <p class="text-sm mb-2">Use placeholders: <code>{customer}</code>, <code>{id}</code>, <code>{balance}</code>, <code>{store}</code>, <code>{phone}</code></p>
+                <div class="space-y-2 p-2">
+                  <div>
+                    <label class="block text-sm">WhatsApp Template</label>
+                    <textarea id="settingsWaTpl" rows="3" class="w-full border rounded p-2"></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-sm">SMS Template</label>
+                    <textarea id="settingsSmsTpl" rows="3" class="w-full border rounded p-2"></textarea>
+                  </div>
+                  <div class="flex gap-2">
+                    <button id="settingsSaveMsgBtn" class="px-3 py-2 bg-blue-600 text-white rounded">Save</button>
+                    <button id="settingsResetMsgBtn" class="px-3 py-2 bg-gray-200 rounded">Reset Defaults</button>
+                  </div>
+                  <div id="settingsMsgStatus" class="text-sm text-green-600 hidden"></div>
                 </div>
-                <div>
-                  <label class="block text-sm">SMS Template</label>
-                  <textarea id="settingsSmsTpl" rows="3" class="w-full border rounded p-2"></textarea>
+              </div>
+
+              <!-- Help -->
+              <div class="settings-panel hidden" data-panel="help">
+                <h3 class="font-semibold mb-2">Help & Guidance</h3>
+                <div class="prose max-w-none p-2">
+                  <h4>Invoices</h4>
+                  <ul>
+                    <li>To create an invoice, open the invoice form and add items (name & price). Save to add it to the list.</li>
+                    <li>Mark as paid/unpaid using the toggle button on each invoice row.</li>
+                    <li>Use the action icons to call, WhatsApp, SMS, print, or share an invoice card.</li>
+                  </ul>
                 </div>
-                <div class="flex gap-2">
-                  <button id="settingsSaveMsgBtn" class="px-3 py-2 bg-blue-600 text-white rounded">Save</button>
-                  <button id="settingsResetMsgBtn" class="px-3 py-2 bg-gray-200 rounded">Reset Defaults</button>
+              </div>
+
+              <!-- Notices -->
+              <div class="settings-panel hidden" data-panel="notices">
+                <h3 class="font-semibold mb-2">App Notices</h3>
+                <div id="settingsNotices" class="space-y-2 p-2 max-h-80 overflow-auto"></div>
+                <div class="text-xs text-gray-500 mt-2">Notices are seeded in code. Use window.Notices API to add/edit/delete programmatically.</div>
+              </div>
+
+              <!-- Export -->
+              <div class="settings-panel hidden" data-panel="export">
+                <h3 class="font-semibold mb-2">Export / Download</h3>
+                <p class="text-sm mb-2">Download invoices as PDF or CSV.</p>
+                <div class="flex gap-2 mb-4 p-2">
+                  <button id="exportInvoicesPdf" class="px-3 py-2 bg-blue-600 text-white rounded">Download PDF</button>
+                  <button id="exportInvoicesExcel" class="px-3 py-2 bg-green-600 text-white rounded">Download CSV</button>
                 </div>
-                <div id="settingsMsgStatus" class="text-sm text-green-600 hidden"></div>
               </div>
-            </div>
-            
-            <!-- Notices -->
-            <div class="settings-panel hidden" data-panel="notices">
-              <h3 class="font-semibold mb-2">App Notices</h3>
-              <div id="settingsNotices" class="space-y-2 p-2 max-h-80 overflow-auto">
-                <!-- notices will be injected here -->
-              </div>
-            </div>
 
-            <!-- Help -->
-            <div class="settings-panel hidden" data-panel="help">
-              <h3 class="font-semibold mb-2">Help & Guidance</h3>
-              <div class="prose max-w-none p-2">
-                <h4>Invoices</h4>
-                <ul>
-                  <li>To create an invoice, open the invoice form and add items (name & price). Save to add it to the list.</li>
-                  <li>Mark as paid/unpaid using the toggle button on each invoice row.</li>
-                  <li>Use the action icons to call, WhatsApp, SMS, print, or share an invoice card.</li>
-                </ul>
-              </div>
-            </div>
+              <!-- Drive Backup -->
+              <div class="settings-panel hidden" data-panel="drive">
+                <h3 class="font-semibold mb-2">Google Drive Backup</h3>
+                <p class="text-sm text-gray-600 mb-2">(Requires Google OAuth Client ID & test user setup)</p>
 
-            <!-- Export -->
-            <div class="settings-panel hidden" data-panel="export">
-              <h3 class="font-semibold mb-2">Export / Download</h3>
-              <p class="text-sm mb-2">Download invoices as PDF or Excel.</p>
-              <div class="flex gap-2 mb-4 p-2">
-                <button id="exportInvoicesPdf" class="px-3 py-2 bg-blue-600 text-white rounded">Download PDF</button>
-                <button id="exportInvoicesExcel" class="px-3 py-2 bg-green-600 text-white rounded">Download Excel</button>
-              </div>
-              <div id="settingsExportMsg" class="text-sm text-green-600 hidden"></div>
-            </div>
+                <div class="mb-3 p-2">
+                  <label><input id="optAutoRestoreLogin" type="checkbox" /> Automatically check Drive on login and prompt to restore (opt-in)</label>
+                </div>
 
+                <div class="mb-3 p-2">
+                  <label><input id="optAutoBackupEnabled" type="checkbox" /> Enable automatic backups every</label>
+                  <input id="optAutoBackupDays" type="number" min="1" style="width:70px;margin-left:8px" /> days
+                  <div class="text-xs text-gray-500 mt-1">Backups will run in background while the app is open. Last auto-backup time stored in localStorage.</div>
+                </div>
+
+                <div class="flex gap-2 mb-2">
+                  <button id="driveBackupBtn" class="px-3 py-2 bg-indigo-600 text-white rounded">Backup to Drive</button>
+                  <button id="driveRefreshBtn" class="px-3 py-2 bg-amber-500 text-white rounded">Refresh Backups</button>
+                  <button id="driveRestoreLatestBtn" class="px-3 py-2 bg-red-600 text-white rounded">Restore Latest</button>
+                </div>
+                <div id="driveStatus" class="text-sm text-gray-700 mb-2">Drive: not initialized</div>
+                <div id="driveBackupList" class="space-y-2 max-h-48 overflow-auto"></div>
+              </div>
+
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-    `;
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = html;
-    document.body.appendChild(wrapper);
-    modal = document.getElementById('appSettingsModal');
+      `;
+      document.body.appendChild(modal);
 
-    // tabs wiring
-    modal.querySelectorAll('.settings-tab').forEach(tb => tb.addEventListener('click', () => {
-      const name = tb.dataset.tab;
-      modal.querySelectorAll('.settings-panel').forEach(p => p.dataset.panel === name ? p.classList.remove('hidden') : p.classList.add('hidden'));
-      modal.querySelectorAll('.settings-tab').forEach(tt => tt.classList.toggle('bg-gray-100', tt === tb));
-    }));
+      // wiring - tabs
+      modal.querySelectorAll('.settings-tab').forEach(tb => tb.addEventListener('click', function(){
+        const name = this.dataset.tab;
+        modal.querySelectorAll('.settings-panel').forEach(p => p.dataset.panel === name ? p.classList.remove('hidden') : p.classList.add('hidden'));
+        modal.querySelectorAll('.settings-tab').forEach(tt => tt.classList.toggle('bg-gray-100', tt === this));
+      }));
 
-    // close/backdrop
-    modal.querySelector('#settingsCloseBtn')?.addEventListener('click', () => modal.classList.add('hidden'));
-    modal.addEventListener('click', (e) => { if (e.target === modal || e.target.id === 'appSettingsModalBackdrop') modal.classList.add('hidden'); });
+      // close/backdrop
+      modal.querySelector('#settingsCloseBtn')?.addEventListener('click', () => modal.classList.add('hidden'));
+      modal.addEventListener('click', (e) => { if (e.target === modal || e.target.id === 'appSettingsModalBackdrop') modal.classList.add('hidden'); });
 
-    // messages save/reset
-    modal.querySelector('#settingsSaveMsgBtn')?.addEventListener('click', () => {
-      const wa = document.getElementById('settingsWaTpl').value.trim();
-      const sms = document.getElementById('settingsSmsTpl').value.trim();
-      lsSet(LS_MSG_TPL, { reminder_wa: wa, reminder_sms: sms });
-      const s = document.getElementById('settingsMsgStatus'); s.textContent = 'Saved'; s.classList.remove('hidden'); setTimeout(()=>s.classList.add('hidden'),1400);
-      toast('Templates saved', 'success');
-    });
-    modal.querySelector('#settingsResetMsgBtn')?.addEventListener('click', () => {
-      if (!confirm('Reset message templates to defaults?')) return;
-      lsSet(LS_MSG_TPL, {
-        reminder_wa: "Xasuusin: {customer}, lacagta lagugu leeyahay waa: {balance}.\nFadlan iska bixi dukaanka {store} ({phone}).",
-        reminder_sms: "Xasuusin: {customer}, lacagta lagugu leeyahay waa: {balance}. Fadlan iska bixi dukaanka {store} ({phone})."
+      // messages save/reset
+      modal.querySelector('#settingsSaveMsgBtn')?.addEventListener('click', () => {
+        const wa = (document.getElementById('settingsWaTpl') || {}).value?.trim() || '';
+        const sms = (document.getElementById('settingsSmsTpl') || {}).value?.trim() || '';
+        lsSet(LS_MSG_TPL, { reminder_wa: wa, reminder_sms: sms });
+        const s = document.getElementById('settingsMsgStatus'); if (s) { s.textContent = 'Saved'; s.classList.remove('hidden'); setTimeout(()=>s.classList.add('hidden'),1400); }
+        toast('Templates saved', 'success');
       });
-      toast('Templates reset to defaults', 'success');
+      modal.querySelector('#settingsResetMsgBtn')?.addEventListener('click', () => {
+        if (!confirm('Reset message templates to defaults?')) return;
+        lsSet(LS_MSG_TPL, {
+          reminder_wa: "Xasuusin: {customer}, lacagta lagugu leeyahay waa: {balance}. Fadlan iska bixi dukaanka {store} ({phone}).",
+          reminder_sms: "Xasuusin: {customer}, lacagta lagugu leeyahay waa: {balance}. Fadlan iska bixi dukaanka {store} ({phone})."
+        });
+        toast('Templates reset to defaults', 'success');
+        const tpl = lsGet(LS_MSG_TPL) || {};
+        document.getElementById('settingsWaTpl') && (document.getElementById('settingsWaTpl').value = tpl.reminder_wa || '');
+        document.getElementById('settingsSmsTpl') && (document.getElementById('settingsSmsTpl').value = tpl.reminder_sms || '');
+      });
+
+      // exports
+      modal.querySelector('#exportInvoicesPdf')?.addEventListener('click', () => {
+        const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+        if (!user) { toast('Login required','error'); return; }
+        const inv = (typeof getStoreInvoices === 'function') ? getStoreInvoices(user.name) : [];
+        if (!inv || !inv.length) { toast('No invoices','error'); return; }
+        if (!window.jspdf) { alert('jsPDF required for PDF export'); return; }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text(`${user.name} - Invoices Report`, 14, 16);
+        if (doc.autoTable) {
+          doc.autoTable({
+            head: [['ID','Date','Customer','Phone','Amount','Paid','Balance','Status']],
+            body: inv.map(i => {
+              const amount = Number(i.amount)||0, paid = Number(i.paid)||0, balance = amount - paid;
+              return [i.id, i.date, i.customer, i.phone, amount.toFixed(2), paid.toFixed(2), balance.toFixed(2), i.status];
+            }),
+            startY: 22
+          });
+        } else {
+          let y = 22;
+          inv.forEach(i => { doc.text(`${i.id} | ${i.date} | ${i.customer} | ${i.phone} | ${i.amount}`, 14, y); y += 8; });
+        }
+        doc.save(`invoices_${user.name}_${Date.now()}.pdf`);
+        toast('Invoices PDF exported','success');
+      });
+
+      modal.querySelector('#exportInvoicesExcel')?.addEventListener('click', () => {
+        const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+        if (!user) { toast('Login required','error'); return; }
+        const inv = (typeof getStoreInvoices === 'function') ? getStoreInvoices(user.name) : [];
+        if (!inv || !inv.length) { toast('No invoices','error'); return; }
+        const rows = [['ID','Date','Customer','Phone','Amount','Paid','Status']];
+        inv.forEach(i => rows.push([i.id, i.date, i.customer, i.phone, i.amount, i.paid, i.status]));
+        const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+        const blob = new Blob([csv], { type: "text/csv" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `invoices_${user.name}_${Date.now()}.csv`;
+        document.body.appendChild(a); a.click(); a.remove();
+        toast('Invoices CSV exported','success');
+      });
+
+      // Drive buttons
+      const driveBackupBtn = modal.querySelector('#driveBackupBtn');
+      const driveRefreshBtn = modal.querySelector('#driveRefreshBtn');
+      const driveRestoreLatestBtn = modal.querySelector('#driveRestoreLatestBtn');
+      const driveListEl = modal.querySelector('#driveBackupList');
+
+      // Drive functions (uses earlier helpers)
+      async function driveListBackups() {
+        setDriveStatus('Listing backups...');
+        initGisIfNeeded();
+        try { await initGapiIfNeeded(); } catch(e) { setDriveStatus('gapi init error', true); console.error(e); return; }
+        showSpinner('Listing backups...', '');
+        requestDriveToken(async (token) => {
+          try {
+            const q = `name contains '${BACKUP_NAME_PREFIX}' and trashed=false and mimeType='application/json'`;
+            const params = `?q=${encodeURIComponent(q)}&fields=files(id,name,createdTime,md5Checksum,size)&orderBy=createdTime desc&pageSize=50`;
+            const res = await fetch('https://www.googleapis.com/drive/v3/files' + params, { headers: { Authorization: 'Bearer ' + token }});
+            if (!res.ok) { const t = await res.text(); console.error('list failed', t); setDriveStatus('Failed to list backups', true); hideSpinner(); return; }
+            const data = await res.json();
+            driveListEl.innerHTML = '';
+            if (!data.files || !data.files.length) { driveListEl.innerHTML = '<div class="text-sm text-gray-500">No backups found.</div>'; setDriveStatus('No backups found'); hideSpinner(); return; }
+            data.files.forEach(file => {
+              const item = document.createElement('div');
+              item.className = 'p-2 border rounded flex justify-between items-center bg-white';
+              const left = document.createElement('div');
+              left.innerHTML = `<div style="font-weight:600">${escapeHtml(file.name)}</div><small style="color:#6b7280">${new Date(file.createdTime).toLocaleString()}</small>`;
+              const right = document.createElement('div'); right.style.display = 'flex'; right.style.gap = '8px';
+              const btnRestore = document.createElement('button'); btnRestore.className = 'px-2 py-1 bg-green-600 text-white rounded'; btnRestore.textContent = 'Restore';
+              const btnDownload = document.createElement('button'); btnDownload.className = 'px-2 py-1 bg-gray-200 rounded'; btnDownload.textContent = 'Download';
+              btnRestore.onclick = () => driveRestore(file.id, file.name);
+              btnDownload.onclick = () => driveDownload(file.id, file.name);
+              right.appendChild(btnRestore); right.appendChild(btnDownload);
+              item.appendChild(left); item.appendChild(right);
+              driveListEl.appendChild(item);
+            });
+            setDriveStatus('Backups listed (' + data.files.length + ')');
+            hideSpinner();
+          } catch(err) { console.error(err); setDriveStatus('Error listing backups', true); hideSpinner(); }
+        });
+      }
+
+      async function driveBackup() {
+        setDriveStatus('Preparing backup...');
+        const snapshot = {};
+        for (let i=0;i<localStorage.length;i++){ const k=localStorage.key(i); snapshot[k]=localStorage.getItem(k); }
+        const payload = JSON.stringify(snapshot, null, 2);
+        showSpinner('Uploading backup...', 'Preparing data...');
+        requestDriveToken(async (token) => {
+          try {
+            const metadata = { name: `${BACKUP_NAME_PREFIX}${Date.now()}.json`, mimeType: 'application/json' };
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            form.append('file', new Blob([payload], { type: 'application/json' }));
+            const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,createdTime', {
+              method: 'POST',
+              headers: { Authorization: 'Bearer ' + token },
+              body: form
+            });
+            if (!res.ok) { const t=await res.text(); console.error('upload failed',t); setDriveStatus('Backup failed', true); hideSpinner(); return; }
+            const json = await res.json();
+            lsSet(LS_SETTINGS, Object.assign(lsGet(LS_SETTINGS)||{}, { lastAutoBackup: now() }));
+            setDriveStatus('Backup saved: ' + json.name);
+            toast('Backup saved to Drive','success');
+            hideSpinner();
+            await driveListBackups();
+          } catch(err){ console.error(err); setDriveStatus('Backup error', true); hideSpinner(); }
+        });
+      }
+
+      async function driveDownload(fileId, fileName) {
+        setDriveStatus('Downloading ' + fileName + '...');
+        showSpinner('Downloading backup...', fileName);
+        requestDriveToken(async (token) => {
+          try {
+            const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { Authorization: 'Bearer ' + token }});
+            if (!res.ok) { const t = await res.text(); console.error('download failed', t); setDriveStatus('Download failed', true); hideSpinner(); return; }
+            const text = await res.text();
+            const blob = new Blob([text], { type: 'application/json' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileName; document.body.appendChild(a); a.click(); a.remove();
+            setDriveStatus('Downloaded ' + fileName);
+            toast('Backup downloaded','success');
+            hideSpinner();
+          } catch(err){ console.error(err); setDriveStatus('Download error', true); hideSpinner(); }
+        });
+      }
+
+      async function driveRestore(fileId, fileName) {
+        if (!confirm(`Restore "${fileName}"? This will overwrite local app data stored in this browser.`)) return;
+        setDriveStatus('Restoring ' + fileName + '...');
+        showSpinner('Restoring backup...', fileName);
+        requestDriveToken(async (token) => {
+          try {
+            const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, { headers: { Authorization: 'Bearer ' + token }});
+            if (!res.ok) { const t = await res.text(); console.error('restore failed', t); setDriveStatus('Restore failed', true); hideSpinner(); return; }
+            const text = await res.text();
+            let obj; try { obj = JSON.parse(text); } catch(e) { setDriveStatus('Invalid JSON in backup', true); hideSpinner(); return; }
+            localStorage.clear();
+            Object.keys(obj).forEach(k => localStorage.setItem(k, obj[k]));
+            // trigger UI re-render events
+            try { window.dispatchEvent(new Event('dataUpdated')); } catch(e){}
+            try { if (typeof renderProductList === 'function') renderProductList(); } catch(e){}
+            try { if (typeof renderInvoiceTable === 'function') renderInvoiceTable(); } catch(e){}
+            try { if (typeof renderReports === 'function') renderReports(); } catch(e){}
+            try { if (typeof updateDashboardTotals === 'function') updateDashboardTotals(); } catch(e){}
+            setDriveStatus('Restore complete from ' + fileName);
+            toast('Backup restored','success');
+            hideSpinner();
+          } catch(err){ console.error(err); setDriveStatus('Restore error', true); hideSpinner(); }
+        });
+      }
+
+      async function driveRestoreLatest() {
+        setDriveStatus('Fetching latest backup...');
+        showSpinner('Fetching latest backup...', '');
+        requestDriveToken(async (token) => {
+          try {
+            const q = `name contains '${BACKUP_NAME_PREFIX}' and trashed=false and mimeType='application/json'`;
+            const params = `?q=${encodeURIComponent(q)}&fields=files(id,name,createdTime)&orderBy=createdTime desc&pageSize=1`;
+            const res = await fetch('https://www.googleapis.com/drive/v3/files' + params, { headers: { Authorization: 'Bearer ' + token }});
+            if (!res.ok) { const t = await res.text(); console.error('latest fetch failed', t); setDriveStatus('Failed to fetch latest', true); hideSpinner(); return; }
+            const data = await res.json();
+            if (!data.files || !data.files.length) { setDriveStatus('No backups found'); hideSpinner(); return; }
+            const latest = data.files[0];
+            if (!confirm(`Restore latest backup "${latest.name}"? This will overwrite local app data.`)) { hideSpinner(); return; }
+            const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${latest.id}?alt=media`, { headers: { Authorization: 'Bearer ' + token }});
+            if (!fileRes.ok) { setDriveStatus('Failed to download latest', true); hideSpinner(); return; }
+            const txt = await fileRes.text();
+            let obj; try { obj = JSON.parse(txt); } catch(e) { setDriveStatus('Latest backup invalid JSON', true); hideSpinner(); return; }
+            localStorage.clear();
+            Object.keys(obj).forEach(k => localStorage.setItem(k, obj[k]));
+            try { window.dispatchEvent(new Event('dataUpdated')); } catch(e){}
+            try { if (typeof renderProductList === 'function') renderProductList(); } catch(e){}
+            try { if (typeof renderInvoiceTable === 'function') renderInvoiceTable(); } catch(e){}
+            try { if (typeof renderReports === 'function') renderReports(); } catch(e){}
+            try { if (typeof updateDashboardTotals === 'function') updateDashboardTotals(); } catch(e){}
+            setDriveStatus('Latest backup restored: ' + latest.name);
+            toast('Latest backup restored','success');
+            hideSpinner();
+          } catch(err){ console.error(err); setDriveStatus('Error restoring latest', true); hideSpinner(); }
+        });
+      }
+
+      // wire buttons
+      driveBackupBtn && driveBackupBtn.addEventListener('click', driveBackup);
+      driveRefreshBtn && driveRefreshBtn.addEventListener('click', driveListBackups);
+      driveRestoreLatestBtn && driveRestoreLatestBtn.addEventListener('click', driveRestoreLatest);
+
+      // Notices API (programmatic)
+      window.Notices = {
+        add: function({title, body}) {
+          const all = lsGet(LS_NOTICES) || [];
+          const payload = { id: `N-${Date.now()}`, title: title || 'Notice', body: body || '', created: Date.now() };
+          all.unshift(payload);
+          lsSet(LS_NOTICES, all);
+          // update modal list if visible
+          const nc = document.getElementById('settingsNotices');
+          if (nc) { nc.insertAdjacentHTML('afterbegin', `<div class="border rounded p-2 bg-gray-50"><div class="flex justify-between items-center mb-1"><h4 class="font-semibold text-sm">${escapeHtml(payload.title)}</h4><span class="text-xs text-gray-400">${new Date(payload.created).toLocaleDateString()}</span></div><p class="text-sm text-gray-700">${escapeHtml(payload.body)}</p></div>`); }
+          return payload;
+        },
+        edit: function(id, {title, body}) {
+          const all = lsGet(LS_NOTICES) || []; const idx = all.findIndex(x => x.id === id); if (idx < 0) throw new Error('not found');
+          if (title != null) all[idx].title = title; if (body != null) all[idx].body = body;
+          lsSet(LS_NOTICES, all);
+          // re-render
+          const nc = document.getElementById('settingsNotices');
+          if (nc) { nc.innerHTML = (lsGet(LS_NOTICES)||[]).map(n => `<div class="border rounded p-2 bg-gray-50"><div class="flex justify-between items-center mb-1"><h4 class="font-semibold text-sm">${escapeHtml(n.title)}</h4><span class="text-xs text-gray-400">${new Date(n.created||Date.now()).toLocaleDateString()}</span></div><p class="text-sm text-gray-700">${escapeHtml(n.body)}</p></div>`).join(''); }
+          return all[idx];
+        },
+        delete: function(id) {
+          const all = lsGet(LS_NOTICES) || []; const idx = all.findIndex(x => x.id === id); if (idx < 0) throw new Error('not found');
+          all.splice(idx,1); lsSet(LS_NOTICES, all);
+          const nc = document.getElementById('settingsNotices');
+          if (nc) nc.innerHTML = (lsGet(LS_NOTICES)||[]).map(n => `<div class="border rounded p-2 bg-gray-50"><div class="flex justify-between items-center mb-1"><h4 class="font-semibold text-sm">${escapeHtml(n.title)}</h4><span class="text-xs text-gray-400">${new Date(n.created||Date.now()).toLocaleDateString()}</span></div><p class="text-sm text-gray-700">${escapeHtml(n.body)}</p></div>`).join('');
+          return true;
+        },
+        list: function(){ return lsGet(LS_NOTICES) || []; }
+      };
+
+    } // end modal creation
+
+    // show and populate fields
+    modal.classList.remove('hidden');
+    const tpl = lsGet(LS_MSG_TPL) || {};
+    document.getElementById('settingsWaTpl') && (document.getElementById('settingsWaTpl').value = tpl.reminder_wa || '');
+    document.getElementById('settingsSmsTpl') && (document.getElementById('settingsSmsTpl').value = tpl.reminder_sms || '');
+    // populate notices area
+    const noticeContainer = document.getElementById('settingsNotices');
+    if (noticeContainer) { const n = lsGet(LS_NOTICES) || []; if (!n.length) noticeContainer.innerHTML = '<div class="text-sm text-gray-500">No notices available.</div>'; else noticeContainer.innerHTML = n.map(nn => `<div class="border rounded p-2 bg-gray-50"><div class="flex justify-between items-center mb-1"><h4 class="font-semibold text-sm">${escapeHtml(nn.title)}</h4><span class="text-xs text-gray-400">${new Date(nn.created||Date.now()).toLocaleDateString()}</span></div><p class="text-sm text-gray-700">${escapeHtml(nn.body)}</p></div>`).join(''); }
+
+    // populate drive settings UI
+    const settings = lsGet(LS_SETTINGS) || {};
+    document.getElementById('optAutoRestoreLogin').checked = Boolean(settings.autoRestoreOnLogin);
+    document.getElementById('optAutoBackupEnabled').checked = Boolean(settings.autoBackup && settings.autoBackup.enabled);
+    document.getElementById('optAutoBackupDays').value = (settings.autoBackup && settings.autoBackup.days) ? settings.autoBackup.days : 7;
+
+    // init Drive clients non-blocking
+    initGisIfNeeded();
+    initGapiIfNeeded().then(()=> setDriveStatus('Drive: ready')).catch(()=> setDriveStatus('Drive: client not ready'));
+
+    // tab default to messages
+    modal.querySelectorAll('.settings-panel').forEach(p => p.dataset.panel === 'messages' ? p.classList.remove('hidden') : p.classList.add('hidden'));
+
+    // watch changes to backup options: save and schedule/cancel
+    const optRestore = document.getElementById('optAutoRestoreLogin');
+    const optAutoEnabled = document.getElementById('optAutoBackupEnabled');
+    const optAutoDays = document.getElementById('optAutoBackupDays');
+
+    function persistDriveSettings() {
+      const current = lsGet(LS_SETTINGS) || {};
+      current.autoRestoreOnLogin = Boolean(optRestore.checked);
+      current.autoBackup = { enabled: Boolean(optAutoEnabled.checked), days: Number(optAutoDays.value) || 7 };
+      lsSet(LS_SETTINGS, current);
+      toast('Backup settings saved', 'success');
+      // schedule or cancel
+      if (current.autoBackup && current.autoBackup.enabled) scheduleAutoBackup();
+      else cancelAutoBackup();
+    }
+
+    optRestore?.addEventListener('change', persistDriveSettings);
+    optAutoEnabled?.addEventListener('change', persistDriveSettings);
+    optAutoDays?.addEventListener('change', persistDriveSettings);
+
+    // expose drive list refresh when modal opened
+    const refreshBtn = modal.querySelector('#driveRefreshBtn');
+    refreshBtn && refreshBtn.addEventListener('click', () => {
+      driveListBackups();
     });
 
-    // populate notices
-const noticesContainer = modal.querySelector('#settingsNotices');
-if (noticesContainer) {
-  const notices = lsGet(LS_NOTICES) || [];
-  if (!notices.length) {
-    noticesContainer.innerHTML = '<p class="text-sm text-gray-500">No notices available.</p>';
-  } else {
-    noticesContainer.innerHTML = notices.map(n => `
-      <div class="border rounded p-2 bg-gray-50 cl:black dark:bg-gray-700">
-        <div class="flex justify-between items-center mb-1">
-          <h4 class="font-semibold text-sm">${escapeHtml(n.title)}</h4>
-          <span class="text-xs text-gray-400">${new Date(n.created).toLocaleDateString()}</span>
-        </div>
-        <p class="text-sm text-gray-700 dark:text-gray-200">${escapeHtml(n.body)}</p>
-      </div>
-    `).join('');
+  } // end openSettingsModal
+
+  // attach settings gear near storeDisplayDesktop (or add to DOM)
+  function ensureSettingsBtn() {
+    let btn = document.getElementById('storeSettingsBtn');
+    if (!btn) {
+      const target = document.getElementById('storeDisplayDesktop');
+      btn = document.createElement('button');
+      btn.id = 'storeSettingsBtn';
+      btn.className = 'ml-2 px-2 py-1 rounded bg-emerald-600 text-white';
+      btn.title = 'Settings';
+      btn.innerHTML = '<i class="fa-solid fa-cog"></i>';
+      if (target && target.parentNode) target.parentNode.insertBefore(btn, target.nextSibling);
+      else document.body.appendChild(btn);
+    }
+    btn.onclick = openSettingsModal;
+    return btn;
   }
-}
-modal.querySelectorAll('.settings-tab').forEach(tb => tb.addEventListener('click', () => {
-  const name = tb.dataset.tab;
-  modal.querySelectorAll('.settings-panel').forEach(p => p.dataset.panel === name ? p.classList.remove('hidden') : p.classList.add('hidden'));
-  modal.querySelectorAll('.settings-tab').forEach(tt => tt.classList.toggle('bg-gray-100', tt === tb));
-}));
+  ensureSettingsBtn();
 
+  // ============================
+  // Auto-backup scheduling logic
+  // ============================
+  let autoBackupTimer = null;
 
-// exports - PDF 
-modal.querySelector('#exportInvoicesPdf')?.addEventListener('click', () => {
-  const user = getCurrentUser(); 
-  if (!user) { 
-    toast('Login required','error'); 
-    return; 
+  function scheduleAutoBackup() {
+    const s = lsGet(LS_SETTINGS) || {};
+    if (!s.autoBackup || !s.autoBackup.enabled) return cancelAutoBackup();
+    const days = Number(s.autoBackup.days) || 7;
+    const ms = days * 24 * 60 * 60 * 1000;
+    // clear existing
+    cancelAutoBackup();
+    // run initial check immediately if lastAutoBackup older than threshold
+    const last = Number(s.lastAutoBackup || 0);
+    const dueNow = (!last) || (now() - last >= ms);
+    if (dueNow) {
+      // perform backup
+      // programmatically call button handler if modal present; otherwise call internal driveBackup
+      try {
+        const modal = document.getElementById('appSettingsModal');
+        if (modal && modal.querySelector('#driveBackupBtn')) modal.querySelector('#driveBackupBtn').click();
+        else {
+          // open modal to ensure drive functions are available then backup
+          openSettingsModal();
+          setTimeout(()=> { const b = document.getElementById('driveBackupBtn'); if (b) b.click(); }, 800);
+        }
+      } catch(e){ console.error('auto backup immediate error', e); }
+    }
+    // schedule repeating uploads
+    autoBackupTimer = setInterval(() => {
+      try {
+        const b = document.getElementById('driveBackupBtn');
+        if (b) b.click();
+        else {
+          // call backup internal if not available
+          const modal = document.getElementById('appSettingsModal');
+          if (!modal) { openSettingsModal(); setTimeout(()=> { const b2 = document.getElementById('driveBackupBtn'); if (b2) b2.click(); }, 700); }
+        }
+      } catch(e){ console.error('auto backup schedule err', e); }
+    }, ms);
+    console.info('Auto-backup scheduled every', days, 'days');
   }
 
-  const inv = getStoreInvoices(user.name) || [];
-  if (!inv.length) { 
-    toast('No invoices','error'); 
-    return; 
+  function cancelAutoBackup() {
+    if (autoBackupTimer) { clearInterval(autoBackupTimer); autoBackupTimer = null; }
   }
 
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  // schedule on startup if setting enabled
+  (function initAutoBackupIfNeeded(){
+    const s = lsGet(LS_SETTINGS) || {};
+    if (s.autoBackup && s.autoBackup.enabled) {
+      // schedule after small delay (allow app to initialize)
+      setTimeout(scheduleAutoBackup, 1000);
+    }
+  })();
 
-  doc.text(`${user.name} - Invoices Report`, 14, 16);
+  // ============================
+  // Auto-restore on login (opt-in)
+  // We'll wrap setCurrentUser if available to emit an event 'app:userLoggedIn'
+  // ============================
+  (function attachLoginHook() {
+    // wrap setCurrentUser to emit an event
+    if (typeof window.setCurrentUser === 'function') {
+      const _orig = window.setCurrentUser;
+      window.setCurrentUser = function(user) {
+        _orig(user);
+        try { window.dispatchEvent(new CustomEvent('app:userLoggedIn', { detail: { user } })); } catch(e){ console.warn(e); }
+      };
+    }
+    // if login flow calls loadDashboard() only, attempt to listen for that event too
+    window.addEventListener('app:userLoggedIn', (ev) => { try { handleAutoRestorePrompt(ev.detail.user); } catch(e){ console.error(e); } });
 
-  doc.autoTable({
-    head: [['ID', 'Date', 'Customer', 'Phone', 'Amount', 'Paid', 'Balance', 'Status']],
-    body: inv.map(i => {
-      const amount = Number(i.amount) || 0;
-      const paid = Number(i.paid) || 0;
-      const balance = amount - paid;
-      return [
-        i.id,
-        i.date,
-        i.customer,
-        i.phone,
-        amount.toFixed(2),
-        paid.toFixed(2),
-        balance.toFixed(2),
-        i.status
-      ];
-    }),
-    startY: 22,
-  });
-
-  doc.save(`invoices_${user.name}_${Date.now()}.pdf`);
-  toast('Invoices PDF exported','success');
-});
-
-
-    // exports - Excel
-    modal.querySelector('#exportInvoicesExcel')?.addEventListener('click', () => {
-      const user = getCurrentUser(); if (!user) { toast('Login required','error'); return; }
-      const inv = getStoreInvoices(user.name) || [];
-      if (!inv.length) { toast('No invoices','error'); return; }
-      const rows = [['ID','Date','Customer','Phone','Amount','Paid','Status']];
-      inv.forEach(i => rows.push([i.id, i.date, i.customer, i.phone, i.amount, i.paid, i.status]));
-      let csv = rows.map(r => r.join(",")).join("\\n");
-      const blob = new Blob([csv], { type: "application/vnd.ms-excel" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `invoices_${user.name}_${Date.now()}.xls`;
-      document.body.appendChild(a); a.click(); a.remove();
-      toast('Invoices Excel exported','success');
+    // also on DOMContentLoaded if already logged in (auto-login check in your app may set current user earlier)
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+        if (user) handleAutoRestorePrompt(user);
+      } catch(e){ console.error(e); }
     });
+  })();
 
-  } // end modal creation
+  // the prompt flow
+  async function handleAutoRestorePrompt(user) {
+    try {
+      const settings = lsGet(LS_SETTINGS) || {};
+      if (!settings.autoRestoreOnLogin) return;
+      if (!user) return;
+      // initialize GSI / gapi if missing
+      initGisIfNeeded();
+      try { await initGapiIfNeeded(); } catch(e){ console.warn('gapi not ready', e); }
+      // list latest backup
+      showSpinner('Checking Drive for backups...', '');
+      requestDriveToken(async (token) => {
+        try {
+          const q = `name contains '${BACKUP_NAME_PREFIX}' and trashed=false and mimeType='application/json'`;
+          const params = `?q=${encodeURIComponent(q)}&fields=files(id,name,createdTime)&orderBy=createdTime desc&pageSize=1`;
+          const res = await fetch('https://www.googleapis.com/drive/v3/files' + params, { headers: { Authorization: 'Bearer ' + token }});
+          hideSpinner();
+          if (!res.ok) { const t = await res.text(); console.error('list latest failed', t); setDriveStatus('Failed to check Drive', true); return; }
+          const data = await res.json();
+          if (!data.files || !data.files.length) { setDriveStatus('No backups found', false); return; }
+          const latest = data.files[0];
+          // Ask user whether to restore
+          const confirmRestore = confirm(`A Drive backup was found: "${latest.name}" (${new Date(latest.createdTime).toLocaleString()}).\nWould you like to restore it now?`);
+          if (!confirmRestore) return;
+          // restore
+          showSpinner('Restoring latest backup...', latest.name);
+          requestDriveToken(async (tk) => {
+            try {
+              const r = await fetch(`https://www.googleapis.com/drive/v3/files/${latest.id}?alt=media`, { headers: { Authorization: 'Bearer ' + tk }});
+              if (!r.ok) { setDriveStatus('Failed to download latest backup', true); hideSpinner(); return; }
+              const txt = await r.text();
+              let obj; try { obj = JSON.parse(txt); } catch(e) { setDriveStatus('Backup JSON invalid', true); hideSpinner(); return; }
+              localStorage.clear();
+              Object.keys(obj).forEach(k => localStorage.setItem(k, obj[k]));
+              // refresh UI
+              try { window.dispatchEvent(new Event('dataUpdated')); } catch(e){}
+              try { if (typeof renderProductList === 'function') renderProductList(); } catch(e){}
+              try { if (typeof renderInvoiceTable === 'function') renderInvoiceTable(); } catch(e){}
+              try { if (typeof renderReports === 'function') renderReports(); } catch(e){}
+              try { if (typeof updateDashboardTotals === 'function') updateDashboardTotals(); } catch(e){}
+              setDriveStatus('Backup restored: ' + latest.name);
+              toast('Drive backup restored', 'success');
+              hideSpinner();
+            } catch(err){ console.error(err); setDriveStatus('Restore failed', true); hideSpinner(); }
+          });
+        } catch(err){ console.error(err); hideSpinner(); setDriveStatus('Error while checking Drive', true); }
+      });
+    } catch(e){ console.error(e); }
+  }
 
-  // show it and populate
-  modal.classList.remove('hidden');
-  const tpl = lsGet(LS_MSG_TPL) || {};
-  document.getElementById('settingsWaTpl') && (document.getElementById('settingsWaTpl').value = tpl.reminder_wa || '');
-  document.getElementById('settingsSmsTpl') && (document.getElementById('settingsSmsTpl').value = tpl.reminder_sms || '');
-  // default to messages tab
-  modal.querySelectorAll('.settings-panel').forEach(p => p.dataset.panel === 'messages' ? p.classList.remove('hidden') : p.classList.add('hidden'));
-}
+  // expose a helper to open settings externally
+  window.AppSettings = window.AppSettings || {};
+  window.AppSettings.open = openSettingsModal;
 
+  // ensure a settings button exists near the store display
+  (function attachSettingsButton() {
+    let btn = document.getElementById('storeSettingsBtn');
+    if (!btn) {
+      const target = document.getElementById('storeDisplayDesktop');
+      btn = document.createElement('button');
+      btn.id = 'storeSettingsBtn';
+      btn.className = 'ml-2 px-2 py-1 rounded bg-emerald-600 text-white';
+      btn.title = 'Settings';
+      btn.innerHTML = '<i class="fa-solid fa-cog"></i>';
+      if (target && target.parentNode) target.parentNode.insertBefore(btn, target.nextSibling);
+      else document.body.appendChild(btn);
+    }
+    btn.onclick = openSettingsModal;
+  })();
 
-    // expose
-    window.AppSettings = { open: openSettingsModal };
-    ensureSettingsBtn();
-  
-  })(); 
+  // ensure spinner markup exists
+  ensureSpinner();
+
+  // done
+  console.info('Settings + Drive module loaded');
+
+})();
+
   
   /* =========================
      small utilities exposed
