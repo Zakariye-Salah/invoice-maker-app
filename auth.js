@@ -615,47 +615,374 @@
   });
 
   logoutBtn?.addEventListener('click', () => {
-    clearCurrentUser();
+    if (!confirm('Are you sure you want to logout?')) return;
+  
+    try {
+      // stop any dashboard live refresh interval (if used)
+      if (typeof dashboardLiveInterval !== 'undefined' && dashboardLiveInterval) {
+        clearInterval(dashboardLiveInterval);
+        dashboardLiveInterval = null;
+      }
+    } catch (e) { /* ignore */ }
+  
+    // clear user & UI
+    clearCurrentUser?.();
     authSection?.classList.remove('hidden');
     dashboardSection?.classList.add('hidden');
-    showLoginForm();
-    setAuthVisibility(true);
-    setTimeout(()=> {
+    showLoginForm?.();
+    setAuthVisibility?.(true);
+  
+    // hide settings cog (slight delay to let UI update)
+    setTimeout(() => {
       const b = document.querySelector('.storeSettingsBtn');
       if (b) b.style.display = 'none';
     }, 50);
+  
+    // feedback
+    if (typeof toast === 'function') toast('Logged out', 'success');
   });
+  
 
   /* =========================
-     DASHBOARD: totals & load
-     ========================= */
-  function updateDashboardTotals() {
-    const user = getCurrentUser();
-    if (!user) return;
-    const invoices = getStoreInvoices(user.name);
-    const products = getStoreProducts(user.name);
-    totalInvoicesEl && (totalInvoicesEl.textContent = invoices.length);
-    totalProductsEl && (totalProductsEl.textContent = (Array.isArray(products) ? products.length : 0));
-    const totalSales = invoices.reduce((s, i) => s + (Number(i.paid) || 0), 0);
-    totalSalesEl && (totalSalesEl.textContent = fmtMoney(totalSales));
+   DASHBOARD: global functions (not scoped) 
+   Paste this replacing the IIFE version so loadDashboard is globally available
+   ========================= */
+
+var dashboardChart = null;
+var dashboardLiveInterval = null;
+var currentDashboardPeriod = 'lifetime';
+
+// Robust invoice date parser
+function parseInvoiceDate(d) {
+  if (d == null) return null;
+  if (typeof d === 'number') return new Date(d);
+  if (typeof d === 'string') {
+    const n = Number(d);
+    if (isFinite(n)) return new Date(n);
+    const s = d.replace(' ', 'T');
+    const dt = new Date(s);
+    if (!isNaN(dt.getTime())) return dt;
+    const parsed = Date.parse(d);
+    if (!isNaN(parsed)) return new Date(parsed);
+  }
+  try { return new Date(d); } catch (e) { return null; }
+}
+
+// Return store invoices filtered by period
+function getInvoicesByPeriod(period) {
+  var user = getCurrentUser();
+  if (!user) return [];
+  var all = getStoreInvoices(user.name) || [];
+  if (!all.length) return [];
+
+  if (!period || period === 'lifetime') return all.slice();
+
+  var now = new Date(), start = null;
+  if (period === 'live' || period === 'today') {
+    start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0,0);
+  } else if (period === 'weekly') {
+    start = new Date(now); start.setDate(now.getDate() - 6); start.setHours(0,0,0,0);
+  } else if (period === 'monthly') {
+    start = new Date(now.getFullYear(), now.getMonth(), 1,0,0,0,0);
+  } else if (period === 'yearly') {
+    start = new Date(now.getFullYear(), 0, 1,0,0,0,0);
+  } else {
+    return all.slice();
+  }
+  var end = now;
+  return all.filter(function(inv) {
+    var dt = parseInvoiceDate(inv.date);
+    if (!dt) return false;
+    var t = dt.getTime();
+    return t >= start.getTime() && t <= end.getTime();
+  });
+}
+
+// Build series
+function buildSalesSeries(invoices, period) {
+  invoices = Array.isArray(invoices) ? invoices : [];
+  var now = new Date();
+
+  if (!period || period === 'lifetime') {
+    var map = new Map();
+    invoices.forEach(function(inv) {
+      var dt = parseInvoiceDate(inv.date); if (!dt) return;
+      var key = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+      var amt = Number(inv.paid) || 0;
+      map.set(key, (map.get(key) || 0) + amt);
+    });
+    var keys = Array.from(map.keys()).sort();
+    if (keys.length === 0) {
+      var labels = [], data = [];
+      for (var i = 5; i >= 0; i--) {
+        var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        var k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0');
+        labels.push(k); data.push(0);
+      }
+      return { labels: labels, data: data };
+    }
+    return { labels: keys, data: keys.map(function(k) { return map.get(k) || 0; }) };
   }
 
-  function loadDashboard() {
-    const user = getCurrentUser();
-    if (!user) return;
-    authSection && authSection.classList.add('hidden');
-    dashboardSection && dashboardSection.classList.remove('hidden');
-    if (storeDisplayDesktop) {
-      storeDisplayDesktop.textContent = user.name;
-      applyLanguage(lsGet(LS_APP_LANG, 'en'));
-    }
-    updateDashboardTotals();
-    showSection('dashboardContent');
-    setAuthVisibility(false);
-    // ensure settings cog exists and is visible
-    try { window.AppSettings.createStoreSettingsBtn(); } catch (e) {}
+  if (period === 'today' || period === 'live') {
+    var labels24 = Array.from({length:24}, function(_,i){ return i + ':00'; });
+    var arr = Array(24).fill(0);
+    invoices.forEach(function(inv) {
+      var dt = parseInvoiceDate(inv.date); if (!dt) return;
+      arr[dt.getHours()] += Number(inv.paid) || 0;
+    });
+    return { labels: labels24, data: arr };
   }
-  window.addEventListener('dataUpdated', updateDashboardTotals);
+
+  if (period === 'weekly') {
+    var days = [], totals = [];
+    for (var j = 6; j >= 0; j--) {
+      var d2 = new Date(now); d2.setDate(now.getDate() - j); d2.setHours(0,0,0,0);
+      days.push(d2); totals.push(0);
+    }
+    invoices.forEach(function(inv) {
+      var dt = parseInvoiceDate(inv.date); if (!dt) return;
+      for (var idx = 0; idx < days.length; idx++) {
+        var d0 = days[idx];
+        if (dt.getFullYear() === d0.getFullYear() && dt.getMonth() === d0.getMonth() && dt.getDate() === d0.getDate()) {
+          totals[idx] += Number(inv.paid) || 0; break;
+        }
+      }
+    });
+    return { labels: days.map(function(d){ return d.getDate() + '/' + (d.getMonth()+1); }), data: totals };
+  }
+
+  if (period === 'monthly') {
+    var yr = now.getFullYear(), mo = now.getMonth();
+    var daysCount = new Date(yr, mo+1, 0).getDate();
+    var labels = Array.from({length: daysCount}, function(_,i){ return String(i+1); });
+    var totalsM = Array(daysCount).fill(0);
+    invoices.forEach(function(inv) {
+      var dt = parseInvoiceDate(inv.date); if (!dt) return;
+      if (dt.getFullYear() === yr && dt.getMonth() === mo) {
+        totalsM[dt.getDate()-1] += Number(inv.paid) || 0;
+      }
+    });
+    return { labels: labels, data: totalsM };
+  }
+
+  if (period === 'yearly') {
+    var labelsY = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var totalsY = Array(12).fill(0);
+    var yrNow = now.getFullYear();
+    invoices.forEach(function(inv) {
+      var dt = parseInvoiceDate(inv.date); if (!dt) return;
+      if (dt.getFullYear() === yrNow) totalsY[dt.getMonth()] += Number(inv.paid) || 0;
+    });
+    return { labels: labelsY, data: totalsY };
+  }
+
+  return { labels: [], data: [] };
+}
+
+// Render Chart.js bar chart safely
+// Replace existing renderSalesChart with this robust version
+function renderSalesChart(series, period) {
+  // get canvas and context
+  var canvas = document.getElementById('salesChart');
+  if (!canvas) return;
+  var ctx = canvas.getContext && canvas.getContext('2d');
+  if (!ctx) return;
+
+  // destroy previous chart safely
+  if (window.dashboardChart) {
+    try { window.dashboardChart.destroy(); } catch(e) { /* ignore */ }
+    window.dashboardChart = null;
+  }
+
+  // Ensure labels/data arrays
+  var labels = Array.isArray(series && series.labels) ? series.labels.slice() : [];
+  var rawData = Array.isArray(series && series.data) ? series.data.slice() : [];
+
+  // If labels empty but data present, create numeric labels
+  if (!labels.length && rawData.length) {
+    labels = rawData.map(function(_, i) { return String(i+1); });
+  }
+
+  // Normalize/sanitize data -> finite numbers only
+  var data = rawData.map(function(v) {
+    var n = Number(v);
+    if (!isFinite(n)) return 0;
+    return n;
+  });
+
+  // If still empty, produce a single zero datum to avoid Chart issues
+  if (!data.length) { labels = ['No data']; data = [0]; }
+
+  // Determine maximum value and choose a nice step / max for y-axis
+  var maxData = Math.max.apply(null, data.map(function(n){ return isFinite(n) ? n : 0; }));
+  if (!isFinite(maxData) || maxData <= 0) { maxData = 0; }
+
+  function chooseStepAndMax(val) {
+    if (!isFinite(val) || val <= 0) return { step: 1, max: 10 };
+    var candidateSteps = [1,5,10,25,50,100,250,500,1000,5000,10000,50000,100000];
+    for (var i=0;i<candidateSteps.length;i++) {
+      var step = candidateSteps[i];
+      var stepsNeeded = Math.ceil(val / step);
+      if (stepsNeeded <= 10) {
+        var niceMax = step * Math.ceil(val / step);
+        return { step: step, max: niceMax };
+      }
+    }
+    // fallback: power of 10 scaling
+    var pow = Math.pow(10, Math.floor(Math.log10(val)));
+    var step = pow;
+    while (Math.ceil(val / step) > 10) step *= 10;
+    return { step: step, max: step * Math.ceil(val / step) };
+  }
+
+  var chosen = chooseStepAndMax(maxData);
+  var stepSize = chosen.step;
+  var niceMax = chosen.max;
+
+  // If max ended up 0 (no positive data), set reasonable defaults
+  if (!isFinite(niceMax) || niceMax <= 0) { stepSize = 1; niceMax = 10; }
+
+  // create chart
+  try {
+    window.dashboardChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Paid Sales',
+          data: data,
+          backgroundColor: 'rgba(16,185,129,0.85)',
+          borderColor: 'rgba(4,120,87,0.9)',
+          borderWidth: 0.6,
+          barPercentage: 0.75,
+          categoryPercentage: 0.8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 450,
+          easing: 'easeOutQuart',
+          // ensure animation doesn't loop
+          loop: false
+        },
+        scales: {
+          x: {
+            ticks: { autoSkip: true, maxRotation: 0, minRotation: 0 }
+          },
+          y: {
+            beginAtZero: true,
+            max: niceMax,
+            ticks: {
+              stepSize: stepSize,
+              callback: function(value /*, index, values*/) {
+                return fmtMoney(value);
+              }
+            }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                // prefer ctx.raw; fallback to dataset value
+                var raw = context.raw;
+                var val = (typeof raw === 'number') ? raw : (Number(context.dataset.data[context.dataIndex]) || 0);
+                return fmtMoney(val);
+              }
+            }
+          },
+          legend: { display: false }
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Failed to render sales chart', err);
+  }
+}
+
+// Update totals + chart
+function updateDashboardTotals(period) {
+  if (!period) period = currentDashboardPeriod || (document.getElementById('dashboardPeriod') && document.getElementById('dashboardPeriod').value) || 'lifetime';
+  currentDashboardPeriod = period;
+  var user = getCurrentUser();
+  if (!user) return;
+
+  var invoices = getInvoicesByPeriod(period);
+  var products = getStoreProducts(user.name) || [];
+
+  var totalInvoicesCount = invoices.length;
+  var totalSalesPaid = invoices.reduce(function(s, inv){ return s + (Number(inv.paid) || 0); }, 0);
+  var totalRevenue = invoices.reduce(function(s, inv){ return s + (Number(inv.amount) || Number(inv.total) || 0); }, 0);
+
+  try { document.getElementById('totalInvoices') && (document.getElementById('totalInvoices').textContent = totalInvoicesCount); } catch(e){}
+  try { document.getElementById('totalProducts') && (document.getElementById('totalProducts').textContent = (Array.isArray(products) ? products.length : 0)); } catch(e){}
+  try { document.getElementById('totalSales') && (document.getElementById('totalSales').textContent = fmtMoney(totalSalesPaid)); } catch(e){}
+  try { document.getElementById('totalRevenue') && (document.getElementById('totalRevenue').textContent = fmtMoney(totalRevenue)); } catch(e){}
+
+  var series = buildSalesSeries(invoices, period);
+  renderSalesChart(series, period);
+}
+
+// Load dashboard view and wire controls
+function loadDashboard() {
+  var user = getCurrentUser();
+  if (!user) return;
+  if (authSection) authSection.classList.add('hidden');
+  if (dashboardSection) dashboardSection.classList.remove('hidden');
+  if (storeDisplayDesktop) storeDisplayDesktop.textContent = user.name || '';
+
+  var periodSel = document.getElementById('dashboardPeriod');
+  var refreshBtn = document.getElementById('dashboardRefresh');
+
+  function applyPeriodChange() {
+    var p = periodSel ? periodSel.value : (currentDashboardPeriod || 'lifetime');
+    try { if (dashboardLiveInterval) { clearInterval(dashboardLiveInterval); dashboardLiveInterval = null; } } catch(e){}
+    updateDashboardTotals(p);
+    if (p === 'live') {
+      dashboardLiveInterval = setInterval(function(){ updateDashboardTotals('today'); }, 5000);
+    }
+  }
+
+  if (periodSel && !periodSel._dashboardBound) {
+    periodSel.addEventListener('change', applyPeriodChange);
+    periodSel._dashboardBound = true;
+  }
+  if (refreshBtn && !refreshBtn._dashboardBound) {
+    refreshBtn.addEventListener('click', applyPeriodChange);
+    refreshBtn._dashboardBound = true;
+  }
+
+  try { window.removeEventListener('dataUpdated', updateDashboardTotals); } catch(e){}
+  window.addEventListener('dataUpdated', function(){ updateDashboardTotals(periodSel ? periodSel.value : currentDashboardPeriod); });
+
+  var initialPeriod = (periodSel && periodSel.value) || currentDashboardPeriod || 'lifetime';
+  currentDashboardPeriod = initialPeriod;
+  updateDashboardTotals(initialPeriod);
+}
+
+// Expose in window namespace for compatibility
+window.loadDashboard = loadDashboard;
+window.updateDashboardTotals = updateDashboardTotals;
+window.buildSalesSeries = buildSalesSeries;
+window.parseInvoiceDate = parseInvoiceDate;
+
+// ensure Chart.js is available (attempt to load if missing)
+document.addEventListener('DOMContentLoaded', function(){
+  if (typeof Chart === 'undefined') {
+    if (typeof ensureLib === 'function') {
+      ensureLib('https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js', 'Chart').catch(function(){ console.warn('Chart.js not loaded - sales chart will be unavailable until Chart.js is included.'); });
+    } else {
+      console.warn('Chart.js not present and ensureLib not available.');
+    }
+  }
+});
+
+
+
+
 
   /* =========================
      NAV / showSection
@@ -672,7 +999,57 @@
   navButtons.forEach(btn => btn.addEventListener('click', () => {
     const target = btn.getAttribute('data-target');
     if (target) showSection(target);
-  }));
+  }));/* =========================
+  NAV / showSection
+  ========================= */
+function showSection(targetId) {
+ [dashboardContent, invoicesSection, productsSection, reportsSection]
+   .forEach(s => s && s.classList.add('hidden'));
+
+ const el = document.getElementById(targetId);
+ if (el) el.classList.remove('hidden');
+
+ if (targetId === "dashboardContent") updateDashboardTotals();
+ if (targetId === "invoicesSection") renderInvoiceTable();
+ if (targetId === "productsSection") renderProductList(searchInput?.value || '');
+ if (targetId === "reportsSection") renderReports();
+
+ // mark active nav button
+ setActiveNav(targetId);
+
+ // show nav bar on app sections
+ document.getElementById('bottomNav')?.classList.remove('hidden');
+}
+
+// highlight active button
+function setActiveNav(targetId) {
+ navButtons.forEach(btn => {
+   if (btn.getAttribute('data-target') === targetId) {
+     btn.classList.add('text-blue-600', 'font-bold');
+   } else {
+     btn.classList.remove('text-blue-600', 'font-bold');
+   }
+ });
+}
+
+// wire up buttons
+navButtons.forEach(btn => btn.addEventListener('click', () => {
+ const target = btn.getAttribute('data-target');
+ if (target) showSection(target);
+}));
+
+/* Hide bottom nav on login & register */
+function showLoginForm() {
+ authSection?.classList.remove('hidden');
+ dashboardSection?.classList.add('hidden');
+ document.getElementById('bottomNav')?.classList.add('hidden');
+}
+
+function showRegisterForm() {
+ // your register form logic...
+ document.getElementById('bottomNav')?.classList.add('hidden');
+}
+
 
   /* =========================
      CLOCK
@@ -889,66 +1266,223 @@ items.forEach((p, idx) => {
   shopBackdrop?.addEventListener('click', () => { shopModal?.classList.add('hidden'); shopBackdrop?.classList.add('hidden'); });
   clearCartBtn?.addEventListener('click', () => { if (!confirm('Clear all items from cart?')) return; cart = []; renderCart(); });
 
-  sellCartBtn?.addEventListener('click', () => {
-    if (!cart.length) return toast('Cart empty.', 'error');
-    // Fill invoice modal inputs inside the invoiceModal container (avoid duplicate id confusion)
-    if (!invoiceModal) { toast('Invoice modal not found', 'error'); return; }
-    const custInput = invoiceModal.querySelector('#customerName');
-    const phoneInput = invoiceModal.querySelector('#customerPhone');
-    const dateInput = invoiceModal.querySelector('#invoiceDate');
-    const totalEl = invoiceModal.querySelector('#invoiceTotal');
-    const amountPaidInput = invoiceModal.querySelector('#amountPaid');
-    const statusSelectEl = invoiceModal.querySelector('#status');
-    if (custInput) custInput.value = '';
-    if (phoneInput) phoneInput.value = '+252';
-    if (dateInput) dateInput.value = fmtDate(new Date());
-    const total = Number(shopModal?.dataset.total || 0);
-    if (totalEl) totalEl.textContent = fmtMoney(total);
-    if (amountPaidInput) amountPaidInput.value = '';
-    if (statusSelectEl) statusSelectEl.value = 'unpaid';
-    invoiceModal?.classList.remove('hidden'); shopModal?.classList.add('hidden'); shopBackdrop?.classList.add('hidden');
-  });
+
   backToCartBtn?.addEventListener('click', () => { invoiceModal?.classList.add('hidden'); shopModal?.classList.remove('hidden'); shopBackdrop?.classList.remove('hidden'); });
 
-  /* buyRecord (checkout) - fixed to use modal-local inputs (avoid duplicate id issues) */
-  buyRecordBtn?.addEventListener('click', () => {
-    if (!invoiceModal) return;
-    const custEl = invoiceModal.querySelector('#customerName');
-    const phoneEl = invoiceModal.querySelector('#customerPhone');
-    const dateEl = invoiceModal.querySelector('#invoiceDate');
-    const totalEl = invoiceModal.querySelector('#invoiceTotal');
-    const amountPaidEl = invoiceModal.querySelector('#amountPaid');
-    const statusEl = invoiceModal.querySelector('#status');
+/* ---------- Helper: set amountPaid readonly when status==paid ---------- */
+function applyStatusPaidBehavior(invoiceModal, total) {
+  if (!invoiceModal) return;
+  const amountPaidInput = invoiceModal.querySelector('#amountPaid');
+  const statusSelect = invoiceModal.querySelector('#status');
+  const totalEl = invoiceModal.querySelector('#invoiceTotal');
 
-    const cust = custEl?.value.trim(); const phone = phoneEl?.value.trim();
-    const date = dateEl?.value || fmtDate(new Date()); const paid = Number(amountPaidEl?.value) || 0; const status = statusEl?.value || 'unpaid';
-    const total = Number(totalEl?.textContent || shopModal?.dataset.total || 0);
+  // Ensure total element shows correct total
+  if (totalEl) totalEl.textContent = fmtMoney(total);
 
-    if (!cust) { toast('Customer name required', 'error'); return; }
-    if (!phone) { toast('Customer phone required', 'error'); return; }
-    const allProducts = getAllProducts();
-    for (const c of cart) { const prod = allProducts.find(p => p.id === c.id); if (!prod || prod.qty < c.qty) return toast(`Not enough stock for ${c.name}.`, 'error'); }
-    const invId = `INV-${Date.now()}`; const invoiceItems = cart.map(i => ({ name: i.name, price: i.price, qty: i.qty, total: i.price * i.qty }));
-    const invoicePayload = { id: invId, store: getCurrentUser().name, date, customer: cust, phone, items: invoiceItems, amount: total, paid, status };
-    const allInv = getAllInvoices(); allInv.push(invoicePayload); saveAllInvoices(allInv);
-    createReportEntry({ id: `RPT-${Date.now()}`, date, store: getCurrentUser().name, items: invoiceItems, amount: total, paid, status, customer: cust, phone });
-    for (const c of cart) { const idx = allProducts.findIndex(p => p.id === c.id && String(p.store || '').toLowerCase() === String(getCurrentUser().name || '').toLowerCase()); if (idx >= 0) allProducts[idx].qty = Math.max(0, allProducts[idx].qty - c.qty); }
-    saveAllProducts(allProducts); cart = []; renderCart(); renderProductList(searchInput?.value || ''); invoiceModal?.classList.add('hidden'); window.dispatchEvent(new Event('dataUpdated')); toast('Sold & recorded.', 'success');
+  function updateAmountPaidReadonly() {
+    const status = statusSelect?.value;
+    if (!amountPaidInput) return;
+    if (status === 'paid') {
+      amountPaidInput.value = String(Number(total || 0).toFixed(2));
+      amountPaidInput.setAttribute('readonly', 'true');
+      amountPaidInput.classList.add('bg-gray-100');
+    } else {
+      // not paid: make it editable but keep previous value if any
+      amountPaidInput.removeAttribute('readonly');
+      amountPaidInput.classList.remove('bg-gray-100');
+    }
+  }
+
+  // run initial
+  updateAmountPaidReadonly();
+
+  // attach one change listener (avoid duplicate listeners)
+  if (statusSelect && !statusSelect._hasPaidListener) {
+    statusSelect.addEventListener('change', () => {
+      updateAmountPaidReadonly();
+    });
+    statusSelect._hasPaidListener = true;
+  }
+}
+
+/* ----------------- SELL (open invoice modal) ----------------- */
+sellCartBtn?.addEventListener('click', () => {
+  if (!cart.length) return toast('Cart empty.', 'error');
+  if (!invoiceModal) { toast('Invoice modal not found', 'error'); return; }
+
+  const custInput = invoiceModal.querySelector('#customerName');
+  const phoneInput = invoiceModal.querySelector('#customerPhone');
+  const dateInput = invoiceModal.querySelector('#invoiceDate');
+  const totalEl = invoiceModal.querySelector('#invoiceTotal');
+  const amountPaidInput = invoiceModal.querySelector('#amountPaid');
+  const statusSelectEl = invoiceModal.querySelector('#status');
+
+  // keep previous customer if they typed one earlier, otherwise blank to allow entry
+  // (user wanted ability to pass customer name; leave it editable)
+  if (custInput && !custInput.value) custInput.value = '';
+  if (phoneInput && !phoneInput.value) phoneInput.value = '+252';
+  if (dateInput) dateInput.value = fmtDate(new Date());
+
+  // compute total from current cart
+  const total = Number(shopModal?.dataset.total || 0);
+  if (totalEl) totalEl.textContent = fmtMoney(total);
+
+  // default status to unpaid unless previously chosen
+  if (statusSelectEl && !statusSelectEl.value) statusSelectEl.value = 'unpaid';
+
+  // clear or set amountPaid depending on status (apply readonly behavior)
+  if (amountPaidInput && (statusSelectEl?.value !== 'paid')) {
+    // keep last value or default to empty
+    if (!amountPaidInput.value) amountPaidInput.value = '';
+    amountPaidInput.removeAttribute('readonly');
+    amountPaidInput.classList.remove('bg-gray-100');
+  }
+
+  // apply paid behavior (this will set paid==total & readonly if status==paid)
+  applyStatusPaidBehavior(invoiceModal, total);
+
+  // show modal
+  invoiceModal?.classList.remove('hidden');
+  shopModal?.classList.add('hidden');
+  shopBackdrop?.classList.add('hidden');
+});
+
+/* ----------------- BUY & RECORD (finalize invoice) ----------------- */
+buyRecordBtn?.addEventListener('click', () => {
+  if (!invoiceModal) return;
+  const custEl = invoiceModal.querySelector('#customerName');
+  const phoneEl = invoiceModal.querySelector('#customerPhone');
+  const dateEl = invoiceModal.querySelector('#invoiceDate');
+  const totalEl = invoiceModal.querySelector('#invoiceTotal');
+  const amountPaidEl = invoiceModal.querySelector('#amountPaid');
+  const statusEl = invoiceModal.querySelector('#status');
+
+  const cust = custEl?.value.trim();
+  const phone = phoneEl?.value.trim();
+  const date = dateEl?.value || fmtDate(new Date());
+  const total = Number((totalEl?.textContent || shopModal?.dataset.total) || 0);
+  let paid = Number(amountPaidEl?.value || 0);
+  const status = statusEl?.value || 'unpaid';
+
+  // validations: customer + phone required
+  if (!cust) { toast('Customer name required', 'error'); return; }
+  if (!phone) { toast('Customer phone required', 'error'); return; }
+
+  // stock check
+  const allProducts = getAllProducts();
+  for (const c of cart) {
+    const prod = allProducts.find(p => p.id === c.id);
+    if (!prod || prod.qty < c.qty) return toast(`Not enough stock for ${c.name}.`, 'error');
+  }
+
+  // if status is paid => override paid to total and set readonly (defensive)
+  if (status === 'paid') {
+    paid = Number(total);
+    if (amountPaidEl) {
+      amountPaidEl.value = String(Number(total).toFixed(2));
+      amountPaidEl.setAttribute('readonly', 'true');
+      amountPaidEl.classList.add('bg-gray-100');
+    }
+  } else {
+    // if unpaid/partial: ensure paid is within 0..total
+    if (paid < 0) { toast('Paid amount cannot be negative', 'error'); return; }
+    if (paid > total) { toast('Paid cannot be greater than total', 'error'); return; }
+    // allow editable
+    if (amountPaidEl) amountPaidEl.removeAttribute('readonly');
+  }
+
+  // build invoice
+  const invoiceItems = cart.map(i => ({ name: i.name, price: i.price, qty: i.qty, total: i.price * i.qty }));
+  const invId = `INV-${Date.now()}`;
+  const invoicePayload = { id: invId, store: getCurrentUser().name, date, customer: cust, phone, items: invoiceItems, amount: total, paid, status };
+  const allInv = getAllInvoices(); allInv.push(invoicePayload); saveAllInvoices(allInv);
+
+  // create report entry: use passed values
+  createReportEntry({
+    id: `RPT-${Date.now()}`,
+    date,
+    store: getCurrentUser().name,
+    items: invoiceItems,
+    amount: total,
+    paid,
+    status,
+    customer: cust,
+    phone
   });
 
-  /* buyOnly */
-  buyOnlyBtn?.addEventListener('click', () => {
-    if (!cart.length) return toast('Cart empty', 'error');
-    if (!invoiceModal) return;
-    const dateEl = invoiceModal.querySelector('#invoiceDate');
-    const date = dateEl?.value || fmtDate(new Date());
-    const total = Number(shopModal?.dataset.total || 0);
-    const allProducts = getAllProducts(); for (const c of cart) { const prod = allProducts.find(p => p.id === c.id); if (!prod || prod.qty < c.qty) return toast(`Not enough stock for ${c.name}.`, 'error'); }
-    const invoiceItems = cart.map(i => ({ name: i.name, price: i.price, qty: i.qty, total: i.price * i.qty }));
-    createReportEntry({ id: `RPT-${Date.now()}`, date, store: getCurrentUser().name, items: invoiceItems, amount: total, paid: 0, status: 'unpaid', customer: 'Walk-in Customer', phone: '+252000000000' });
-    for (const c of cart) { const idx = allProducts.findIndex(p => p.id === c.id && String(p.store || '').toLowerCase() === String(getCurrentUser().name || '').toLowerCase()); if (idx >= 0) allProducts[idx].qty = Math.max(0, allProducts[idx].qty - c.qty); }
-    saveAllProducts(allProducts); cart = []; renderCart(); renderProductList(searchInput?.value || ''); invoiceModal?.classList.add('hidden'); window.dispatchEvent(new Event('dataUpdated')); toast('Recorded in Reports.', 'success');
+  // update stock
+  for (const c of cart) {
+    const idx = allProducts.findIndex(p => p.id === c.id && String(p.store || '').toLowerCase() === String(getCurrentUser().name || '').toLowerCase());
+    if (idx >= 0) allProducts[idx].qty = Math.max(0, allProducts[idx].qty - c.qty);
+  }
+  saveAllProducts(allProducts);
+
+  // finalize
+  cart = [];
+  renderCart();
+  renderProductList(searchInput?.value || '');
+  invoiceModal?.classList.add('hidden');
+  window.dispatchEvent(new Event('dataUpdated'));
+  toast('Sold & recorded.', 'success');
+});
+
+/* ----------------- BUY ONLY (quick record) ----------------- */
+buyOnlyBtn?.addEventListener('click', () => {
+  if (!cart.length) return toast('Cart empty', 'error');
+
+  // try to read invoice modal fields if present, else use defaults
+  const custInput = invoiceModal?.querySelector('#customerName');
+  const phoneInput = invoiceModal?.querySelector('#customerPhone');
+  const statusSelectEl = invoiceModal?.querySelector('#status');
+
+  const cust = custInput?.value?.trim() || 'Walk-in Customer';
+  const phone = phoneInput?.value?.trim() || '+252000000000';
+  const status = statusSelectEl?.value || 'unpaid';
+
+  const total = Number(shopModal?.dataset.total || 0);
+  const allProducts = getAllProducts();
+
+  // stock check
+  for (const c of cart) {
+    const prod = allProducts.find(p => p.id === c.id);
+    if (!prod || prod.qty < c.qty) return toast(`Not enough stock for ${c.name}.`, 'error');
+  }
+
+  // determine paid based on status
+  const paid = (status === 'paid') ? Number(total) : 0;
+
+  const invoiceItems = cart.map(i => ({ name: i.name, price: i.price, qty: i.qty, total: i.price * i.qty }));
+
+  createReportEntry({
+    id: `RPT-${Date.now()}`,
+    date: fmtDate(new Date()),
+    store: getCurrentUser().name,
+    items: invoiceItems,
+    amount: total,
+    paid: paid,
+    status: status,
+    customer: cust,
+    phone: phone
   });
+
+  // reduce stock
+  for (const c of cart) {
+    const idx = allProducts.findIndex(p => p.id === c.id && String(p.store || '').toLowerCase() === String(getCurrentUser().name || '').toLowerCase());
+    if (idx >= 0) allProducts[idx].qty = Math.max(0, allProducts[idx].qty - c.qty);
+  }
+  saveAllProducts(allProducts);
+
+  cart = [];
+  renderCart();
+  renderProductList(searchInput?.value || '');
+  // close modals if open
+  invoiceModal?.classList.add('hidden');
+  shopModal?.classList.add('hidden');
+  shopBackdrop?.classList.add('hidden');
+  window.dispatchEvent(new Event('dataUpdated'));
+  toast('Recorded in Reports.', 'success');
+});
+
 
   /* report helper */
   function createReportEntry({ id, date, store, items, amount, paid = 0, status = null, customer, phone, type = "sale" }) {
@@ -1504,37 +2038,58 @@ items.forEach((p, idx) => {
     }
 
     if (mobile) {
-      // mobile cards: hide horizontal overflow on wrapper if exists
+      // hide thead
       const wrapper = document.querySelector('#reportsReportContent .overflow-x-auto');
       if (wrapper) wrapper.style.overflowX = 'hidden';
-
+    
       list.forEach((rpt, i) => {
         const tr = document.createElement('tr');
         tr.className = 'border-b';
-        const itemsStr = (rpt.items || []).map(it => escapeHtml(it.name || '')).join(', ');
+    
+        const products = (rpt.items || []).map(it => escapeHtml(it.name || '')).join(', ');
+        const qty = (rpt.items || []).reduce((s, it) => s + (Number(it.qty) || 0), 0);
+    
         tr.innerHTML = `
           <td colspan="11" class="p-2">
-            <div class="p-3 bg-white rounded-xl shadow">
-              <div class="flex items-center justify-between">
-                <div>
-                  <div class="font-semibold">#${i + 1} • ${escapeHtml(itemsStr)}</div>
-                  <div class="text-sm text-gray-500">${fmtDate(rpt.date)}</div>
-                </div>
-                <div class="text-right">
-                  <div class="font-semibold">${fmtMoney(rpt.amount)}</div>
-                  <div class="text-xs ${rpt.status === 'paid' ? 'text-emerald-600' : 'text-rose-600'}">${escapeHtml(rpt.status)}</div>
-                </div>
+            <div class="p-3 bg-white rounded-xl shadow space-y-2">
+              <!-- Header -->
+              <div class="flex justify-between items-center">
+                <div class="font-semibold">#${i + 1} • ${products}</div>
+                <div class="text-xs text-gray-500">${fmtDateTime(rpt.date)}</div>
               </div>
-              <div class="mt-3 flex gap-2">
-                <button class="action-icon" data-action="print-report" data-id="${rpt.id}" title="Print"><i class="fa-solid fa-print"></i></button>
-                <button class="action-icon text-red-600" data-action="delete-report" data-id="${rpt.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+    
+              <!-- Details grid -->
+              <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                <div><span class="font-medium">Qty:</span> ${qty}</div>
+                <div><span class="font-medium">Total:</span> ${fmtMoney(rpt.amount)}</div>
+                <div><span class="font-medium">Paid:</span> ${fmtMoney(rpt.paid)}</div>
+                <div><span class="font-medium">Due:</span> ${fmtMoney(rpt.due || 0)}</div>
+                <div><span class="font-medium">Status:</span> 
+                  <span class="${rpt.status === 'paid' ? 'text-emerald-600' : 'text-rose-600'}">
+                    ${escapeHtml(rpt.status)}
+                  </span>
+                </div>
+                <div><span class="font-medium">Customer:</span> ${escapeHtml(rpt.customer || '')}</div>
+                <div><span class="font-medium">Phone:</span> ${escapeHtml(rpt.phone || '')}</div>
+              </div>
+    
+              <!-- Actions -->
+              <div class="mt-2 flex gap-2">
+                <button class="action-icon" data-action="print-report" data-id="${rpt.id}" title="Print">
+                  <i class="fa-solid fa-print"></i>
+                </button>
+                <button class="action-icon text-red-600" data-action="delete-report" data-id="${rpt.id}" title="Delete">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
               </div>
             </div>
           </td>
         `;
+    
         reportsRows.appendChild(tr);
       });
-    } else {
+    }
+    else {
       // Desktop: show rows with columns
       list.forEach((rpt, idx) => {
         const tr = document.createElement('tr');
@@ -1598,30 +2153,150 @@ items.forEach((p, idx) => {
 
   // reports export all / delete all controls
   reportsExportPdf?.addEventListener('click', async () => {
-    // try to build a simple HTML/PDF via jsPDF if available
-    const list = getReportsFiltered(reportsPeriod?.value || 'lifetime', reportsDate?.value || '', reportsSearchInput?.value || '');
-    if (!list.length) { toast('No reports to export', 'error'); return; }
-    // Build a textual report and download as plain .txt if jsPDF not present
+    const list = getReportsFiltered(
+      reportsPeriod?.value || 'lifetime',
+      reportsDate?.value || '',
+      reportsSearchInput?.value || ''
+    );
+    if (!list.length) {
+      toast('No reports to export', 'error');
+      return;
+    }
+  
     if (window.jspdf && window.jspdf.jsPDF) {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
-      doc.setFontSize(12);
+  
+      // Helpers
+      const money = v => fmtMoney(Number(v || 0));
+      const sumQty = r => (Array.isArray(r.items) ? r.items.reduce((a, it) => a + (Number(it.qty) || 0), 0) : (Number(r.qty) || 0));
+      const totalOf = r => (r.total != null ? Number(r.total) : (r.amount != null ? Number(r.amount) : 0));
+      const paidOf  = r => Number(r.paid || 0);
+      const dueOf   = r => Math.max(0, totalOf(r) - paidOf(r));
+      const productsOf = r => {
+        const names = Array.isArray(r.items) ? r.items.map(it => it?.name).filter(Boolean) : [];
+        if (names.length === 0 && r.product) return String(r.product);
+        if (names.length <= 2) return names.join(', ');
+        return `${names[0]}, ${names[1]} +${names.length - 2}`;
+      };
+      const statusOf = r => (r.status ? String(r.status) : (dueOf(r) > 0 ? 'due' : 'paid'));
+      const phoneOf  = r => (r.phone ? String(r.phone) : '');
+      const timeOf   = r => fmtDateTime(r.date);
+  
+      // Title
+      doc.setFontSize(14);
       doc.text(`Reports (${reportsPeriod?.value || 'lifetime'}) - ${fmtDate(new Date())}`, 10, 10);
-      let y = 20;
+  
+      // Column layout (A4 portrait, mm)
+      // widths sum = 174 mm, fits inside 190 mm usable area (10 mm margins)
+      const columns = [
+        { key: 'no',        label: '#',         width: 7,   align: 'right' },
+        { key: 'products',  label: 'Products',  width: 28,  align: 'left'  },
+        { key: 'qty',       label: 'Qty',       width: 8,   align: 'right' },
+        { key: 'total',     label: 'Total',     width: 17,  align: 'right' },
+        { key: 'paid',      label: 'Paid',      width: 17,  align: 'right' },
+        { key: 'due',       label: 'Due',       width: 17,  align: 'right' },
+        { key: 'status',    label: 'Status',    width: 17,  align: 'left'  },
+        { key: 'customer',  label: 'Customer',  width: 24,  align: 'left'  },
+        { key: 'phone',     label: 'Phone',     width: 15,  align: 'left'  },
+        { key: 'time',      label: 'Timestamp', width: 24,  align: 'left'  },
+      ];
+  
+      const marginLeft = 10;
+      const marginTop  = 16;
+      const lineH = 6;
+  
+      // Precompute x positions
+      let x = marginLeft;
+      columns.forEach(col => { col.x = x; x += col.width; });
+  
+      function drawHeaders(y) {
+        doc.setFontSize(11);
+        columns.forEach(col => {
+          drawText(col.label, col, y, /*isHeader*/true);
+        });
+      }
+  
+      function drawText(text, col, y, isHeader = false) {
+        const maxW = col.width - 1; // small padding
+        const lines = doc.splitTextToSize(String(text ?? ''), maxW);
+        const textWidth = doc.getTextWidth(lines[0] || '');
+        let tx = col.x + 1; // left padding
+        if (col.align === 'right') tx = col.x + col.width - 1 - textWidth;
+        doc.text(lines, tx, y);
+        return lines.length;
+      }
+  
+      function drawRow(rowValues, y) {
+        // wrap-aware row height
+        let maxLines = 1;
+        doc.setFontSize(10);
+        columns.forEach(col => {
+          const lines = doc.splitTextToSize(String(rowValues[col.key] ?? ''), col.width - 1);
+          maxLines = Math.max(maxLines, lines.length);
+        });
+        // draw cells
+        columns.forEach(col => {
+          drawText(rowValues[col.key], col, y);
+        });
+        return maxLines * lineH;
+      }
+  
+      // Start
+      let y = marginTop + 4;
+      drawHeaders(y);
+      y += lineH;
+  
+      // Rows
       list.forEach((r, i) => {
-        const line = `${i+1}. ${r.id} | ${fmtDateTime(r.date)} | ${r.customer||''} | ${fmtMoney(r.amount)} | ${r.status}`;
-        doc.text(line, 10, y); y += 8;
-        if (y > 280) { doc.addPage(); y = 10; }
+        const row = {
+          no: i + 1,
+          products: productsOf(r),
+          qty: sumQty(r),
+          total: money(totalOf(r)),
+          paid: money(paidOf(r)),
+          due: money(dueOf(r)),
+          status: statusOf(r),
+          customer: r.customer || '',
+          phone: phoneOf(r),
+          time: timeOf(r),
+        };
+  
+        // page break check (estimate height by wrapping)
+        // compute row height first without drawing
+        let maxLines = 1;
+        doc.setFontSize(10);
+        columns.forEach(col => {
+          const lines = doc.splitTextToSize(String(row[col.key] ?? ''), col.width - 1);
+          maxLines = Math.max(maxLines, lines.length);
+        });
+        const rowH = Math.max(lineH, maxLines * lineH);
+  
+        if (y + rowH > 285) {
+          doc.addPage();
+          y = marginTop + 4;
+          drawHeaders(y);
+          y += lineH;
+        }
+  
+        // draw the row for real
+        y += drawRow(row, y);
       });
+  
       doc.save(`reports_${Date.now()}.pdf`);
       toast('PDF exported', 'success');
     } else {
-      // fallback to JSON download
+      // fallback JSON
       const blob = new Blob([JSON.stringify(list, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `reports_${Date.now()}.json`; a.click();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `reports_${Date.now()}.json`;
+      a.click();
       toast('Reports exported as JSON', 'success');
     }
   });
+  
+  
 
   reportsDeleteAll?.addEventListener('click', () => {
     if (!confirm('Delete all reports for this store?')) return;
@@ -2457,7 +3132,7 @@ items.forEach((p, idx) => {
     const paid = Number(paidInput?.value) || 0;
     if (statusSelect) statusSelect.value = paid >= total && total > 0 ? 'paid' : 'unpaid';
   }
-  paidInput?.addEventListener('input', recalcInvoiceTotals);
+  // paidInput?.addEventListener('input', recalcInvoiceTotals);
 
   function resetInvoiceForm() {
     if (!editingInvoiceId) return;
@@ -2872,10 +3547,10 @@ items.forEach((p, idx) => {
     }
   }
 
-  sendAllRemindersBtn?.addEventListener('click', async () => {
-    const method = (reminderMethod?.value) || 'wa';
-    await sendAllRemindersFlow(method);
-  });
+  // sendAllRemindersBtn?.addEventListener('click', async () => {
+  //   const method = (reminderMethod?.value) || 'wa';
+  //   await sendAllRemindersFlow(method);
+  // });
 
   /* single invoice reminder */
   function sendReminderFor(invObj, method) {
